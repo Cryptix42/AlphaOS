@@ -1,0 +1,480 @@
+; *************************
+; Project: OS
+; File: File.drv.dasm
+; Warning: This code is untested and unfinished! Bugfix thoroughly before use!
+; *************************
+:fd_load_root;Param A. Set A to the m35fd index that you want to load from.
+set push, a
+set push, b
+set [root_owner], a
+jsr m35fd_select
+jsr m35fd_check_status
+ife a, 0
+	jsr fd_error_nomedia
+ife a, 0
+	set pc, root_load_skp
+ife a, 3
+	jsr fd_error_busy
+ife a, 3
+	set pc, root_load_skp
+set a, 0
+set b, root_table
+jsr m35fd_sector_read
+ifn [root_table], fd_magic_number
+	jsr fd_error_invalid_fs
+ifn [root_table], fd_magic_number
+	jsr fd_unload_root
+:root_load_skp
+set b, pop
+set a, pop
+set pc, pop
+
+:fd_load_folder;Param A and B. Set A to the folder index to load and B to zero to load from root or non-zero to load from currently open folder.
+set push, a
+set push, b
+set push, a
+set a, [root_owner]
+jsr m35fd_select
+set a, pop
+ifn b, 0
+set pc, load_from_folder
+:load_from_root
+ife [root_owner], 0xffff
+	jsr fd_error_noroot 
+ife [root_owner], 0xffff
+	set pc, folder_load_end
+jsr folder_search_table
+set b, root_table
+set a, [a+1]
+and a, 0b1111111111100000
+shr a, 5
+set [folder_orgin_sector], a
+jsr m35fd_sector_read
+set pc, folder_load_end
+:load_from_folder
+ife [folder_owner], 0xffff
+	jsr fd_error_nofolder 
+ife [folder_owner], 0xffff
+	set pc, folder_load_end
+jsr folder_search_table
+set b, folder_table
+set a, [a+1]
+and a, 0b1111111111100000
+shr a, 5
+set [folder_orgin_sector], a
+jsr m35fd_sector_read
+:folder_load_end
+set [folder_owner], 1
+set b, pop
+set a, pop
+set pc, pop
+
+:fd_load_file;Param A and B. Set A to the file index that you want to load into memory and B to zero or nonzero to load from root or folder, respectively.
+set push, a
+set push, b
+set push, c
+set push, a
+set a, [root_owner]
+jsr m35fd_select
+set a, pop
+ifn b, 0
+	set pc, load_from_folder1
+:load_from_root1
+ife [root_owner], 0xffff
+	jsr fd_error_noroot 
+ife [root_owner], 0xffff
+	set pc, folder_load_end
+jsr file_search_table
+set [current_loaded_filetype], [a]
+set b, file_start
+set a, [a+1]
+set c, a
+and c, 0b0000000000011111
+set [current_loaded_filelength], c
+and a, 0b1111111111100000
+shr a, 5
+jsr multisector_read
+set pc, folder_load_end1
+:load_from_folder1
+ife [folder_owner], 0xffff
+	jsr fd_error_nofolder 
+ife [folder_owner], 0xffff
+	set pc, folder_load_end1
+jsr file_search_table
+set [current_loaded_filetype], [a]
+set b, file_start
+set a, [a+1]
+set c, a
+and c, 0b0000000000011111
+set [current_loaded_filelength], c
+and a, 0b1111111111100000
+shr a, 5
+jsr multisector_read
+:folder_load_end1
+set c, pop
+set b, pop
+set a, pop
+set pc, pop
+
+:fd_unload_root;Wipes the currently loaded root folder from memory.
+set push, a
+set push, b
+set push, c
+set c, 0
+set a, root_table
+set b, 512
+jsr memory_fill
+set [root_owner], 0xffff
+set c, pop
+set b, pop
+set a, pop
+set pc, pop
+
+:fd_unload_folder;Wipes the currently loaded folder from memory.
+set push, a
+set push, b
+set push, c
+set c, 0
+set a, folder_table
+set b, 512
+jsr memory_fill
+set [folder_owner], 0xffff
+set [folder_orgin_sector], 0
+set c, pop
+set b, pop
+set a, pop
+set pc, pop
+
+:fd_unload_file;Wipes the currently loaded file from memory.
+set push, a
+set push, b
+set push, c
+set c, 0
+set a, file_start
+set b, file_end
+jsr memory_fill
+set [current_loaded_filetype], 0xfff0
+set [current_loaded_filelength], 0
+set c, pop
+set b, pop
+set a, pop
+set pc, pop
+
+:fd_save_root;Saves the currently loaded root folder to it's original sector. Use this after modifying the root to ensure your modifications are saved.
+set push, a
+set push, b
+set a, [root_owner]
+jsr m35fd_select
+jsr m35fd_check_status
+ife a, 0
+	jsr fd_error_nomedia
+ife a, 0
+	set pc, root_save_skp
+ife a, 2
+	jsr fd_error_WP
+ife a, 2
+	set pc, root_save_skp
+ife a, 3
+	jsr fd_error_busy
+ife a, 3
+	set pc, root_save_skp
+set a, 1
+set b, root_table
+jsr m35fd_sector_write
+:root_save_skp
+set b, pop
+set a, pop
+set pc, pop
+
+:fd_save_folder;Same as "save_root" but for the currently loaded folder.
+set push, a
+set push, b
+set a, [root_owner]
+jsr m35fd_select
+jsr m35fd_check_status
+ife a, 0
+	jsr fd_error_nomedia
+ife a, 0
+	set pc, folder_save_skp
+ife a, 2
+	jsr fd_error_WP
+ife a, 2
+	set pc, folder_save_skp
+ife a, 3
+	jsr fd_error_busy
+ife a, 3
+	set pc, folder_save_skp
+set a, [folder_orgin_sector]
+set b, folder_table
+jsr m35fd_sector_write
+:folder_save_skp
+set b, pop
+set a, pop
+set pc, pop
+
+:fd_save_file;WARNING, this will be a very complex funtion of a level of complexity that I have never attempted. It will most likely not work when finished and I may need some help making it.
+;Read filesystem spec file under "How to write a file." to see how this function should work.
+set pc, pop
+
+:fd_delete_file;Param A and B. Set A to the file/folder you want to delete and B to zero or nonzero to delete it from the loaded root or folder, respectively.
+set push, a
+set push, b
+ifn b, 0
+set pc, delete_from_folder
+ife [root_owner], 0xffff
+	jsr fd_error_noroot 
+ife [root_owner], 0xffff
+	set pc, delete_skp1
+mul a, 2
+add a, root_table
+set [a+1], 0xfff0
+set a, 1
+set b, root_table
+set pc, continue_delete
+:delete_from_folder
+ife [folder_owner], 0xffff
+	jsr fd_error_nofolder 
+ife [folder_owner], 0xffff
+    set pc, delete_skp1
+mul a, 2
+add a, folder_table
+set [a+1], 0xfff0
+set a, [folder_orgin_sector]
+set b, folder_table
+:continue_delete
+set push, a
+set push, b
+set a, [root_owner]
+jsr m35fd_select
+jsr m35fd_check_status
+ife a, 0
+	jsr fd_error_nomedia
+ife a, 0
+	set pc, delete_skp
+ife a, 2
+	jsr fd_error_WP
+ife a, 2
+	set pc, delete_skp
+ife a, 3
+	jsr fd_error_busy
+ife a, 3
+	set pc, delete_skp
+set a, pop
+set b, pop
+jsr m35fd_sector_write
+:delete_skp
+set a, pop
+set b, pop
+:delete_skp1
+set a, pop
+set b, pop
+set pc, pop
+
+:fd_move_file
+
+set pc, pop
+
+:fd_create_folder
+
+set pc, pop
+
+:fd_overwrite_file
+
+set pc, pop
+
+:fd_return_filename;Param A and B. Return C. A is the table index and B specifies root or folder as the source, and C is the address where the name will be returned as a string.
+set push, a
+set push, b
+ifn b, 0
+	set pc, return_from_folder
+:return_from_root
+ife [root_owner], 0xffff
+	jsr fd_error_noroot 
+ife [root_owner], 0xffff
+	set pc, return_name_skp
+mul a, 2
+add a, root_table
+set pc, return_from_folder_skp
+:return_from_folder
+ife [folder_owner], 0xffff
+	jsr fd_error_nofolder
+ife [folder_owner], 0xffff
+	set pc, return_name_skp
+mul a, 2
+add a, folder_table
+:return_from_folder_skp
+set push, a
+set push, b
+set a, [root_owner]
+jsr m35fd_select
+jsr m35fd_check_status
+ife a, 0
+	jsr fd_error_nomedia
+ife a, 0
+	set pc, return_name_skp1
+ife a, 3
+	jsr fd_error_busy
+ife a, 3
+	set pc, return_name_skp1
+set a, pop
+set b, pop
+ife [a], 0xfff0
+jsr get_folder_name
+ifl [a], 0xfff0
+jsr get_file_name
+set pc, return_name_skp
+:return_name_skp1
+set a, pop
+set b, pop
+:return_name_skp
+set a, pop
+set b, pop
+set pc, pop
+
+:fd_return_table_length;FINISH THIS!
+set push, a
+set push, b
+ife b, 0
+set pc, return_root_len
+
+set pc, return_table_len_skp
+:return_root_len
+
+:return_table_len_skp
+set b, pop
+set a, pop
+set pc, pop
+;=============================
+;These are subroutines for the
+;filedriver code only. Do not
+;call to these from anywhere
+;outside of the filedriver.
+
+
+
+
+
+:multisector_read;Param A and B. Reads a sequence of sectors starting at A to RAM starting at B with C set to the number of sectors. Returns A as 0xffff and B as something else if reading failed.
+set push, a
+set push, b
+set push, c
+:m35fd_read_loop
+sub c, 1
+:m35fd_read_retry
+set [m35fd_error_flag], 0
+set push, a
+set push, b
+jsr m35fd_sector_read
+ife a, 0xffff
+	set [m35fd_error_flag], 0xffff
+set b, pop
+set a, pop
+ife [m35fd_error_flag], 0xffff
+	set pc, m35fd_read_error
+add a, 1
+add b, 512
+ife c, 0
+	set pc, m35fd_read_loop
+:m35fd_read_end
+set c, pop
+set b, pop
+set a, pop
+set pc, pop
+:m35fd_read_error
+set push, a
+set push, b
+jsr m35fd_check_status
+set b, pop
+ife a, 3
+set a, pop
+ifn a, 0
+set pc, m35fd_read_retry
+ife a, 0
+jsr fd_error_nomedia
+ife a, 0
+set a, pop
+set pc, m35fd_read_end
+
+:multisector_write;Param A and B. Writes a sequence of sectors starting at A from RAM starting at B with C set to the number of sectors. Returns A as 0xffff and B as something else if writing failed.
+set push, a
+set push, b
+set push, c
+:m35fd_write_loop
+sub c, 1
+:m35fd_write_retry
+set [m35fd_error_flag], 0
+set push, a
+set push, b
+jsr m35fd_sector_write
+ife a, 0xffff
+	set [m35fd_error_flag], 0xffff
+set b, pop
+set a, pop
+ife [m35fd_error_flag], 0xffff
+	set pc, m35fd_write_error
+add a, 1
+add b, 512
+ife c, 0
+	set pc, m35fd_write_loop
+:m35fd_write_end
+set c, pop
+set b, pop
+set a, pop
+set pc, pop
+:m35fd_write_error
+set push, a
+set push, b
+jsr m35fd_check_status
+set b, pop
+ife a, 3
+set a, pop
+ife a, 3
+set pc, m35fd_write_retry
+ife a, 2
+jsr fd_error_WP
+ife a, 2
+set a, pop
+ife a, 0
+jsr fd_error_nomedia
+ife a, 0
+set a, pop
+set pc, m35fd_write_end
+
+:m35fd_error_flag dat 0
+;=============================
+
+:root_table
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+:root_owner dat 0xffff
+
+:folder_table
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+:folder_owner dat 0
+:folder_orgin_sector dat 0
+
+:temp_sector
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+:current_loaded_filetype   dat 0xfff0 ;magic number
+:current_loaded_filelength dat 0x0000 ;in sectors

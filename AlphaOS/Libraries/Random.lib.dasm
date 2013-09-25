@@ -1,0 +1,100 @@
+; *************************
+; Project: OS
+; File: Random.lib.dasm
+; Finished! untested
+; *************************
+:encrypt_memory;Param A and B. Set A to the start of sector and B to the length. Encrypts a sector of memory by adding the 128-bit key to each value.
+set push, a
+set push, b
+set push, c
+add b, a
+:mem_encrypt_loop
+add a, 1
+add [a], [rlsfr_128]
+add [a], [rlsfr_128+1]
+add [a], [rlsfr_128+2]
+add [a], [rlsfr_128+3]
+add [a], [rlsfr_128+4]
+add [a], [rlsfr_128+5]
+add [a], [rlsfr_128+6]
+add [a], [rlsfr_128+7]
+ifn a, b
+set pc, mem_encrypt_loop
+set c, pop
+set b, pop
+set a, pop
+set pc, pop
+
+:decrypt_memory;Param A and B. Set A to the start of sector and B to the length. Decrypts a sector of memory by subtracting the 128-bit key from each value.
+set push, a
+set push, b
+set push, c
+add b, a
+:mem_decrypt_loop
+add a, 1
+sub [a], [rlsfr_128]
+sub [a], [rlsfr_128+1]
+sub [a], [rlsfr_128+2]
+sub [a], [rlsfr_128+3]
+sub [a], [rlsfr_128+4]
+sub [a], [rlsfr_128+5]
+sub [a], [rlsfr_128+6]
+sub [a], [rlsfr_128+7]
+ifn a, b
+set pc, mem_decrypt_loop
+set c, pop
+set b, pop
+set a, pop
+set pc, pop
+
+:pseudorandom_key_generator;Param A. Set A to the start of a 128-bit initialization vector in the RAM, and it will generate the key.
+set push, ex
+set push, b
+set [rlsfr_128], [a+7]
+set [rlsfr_128+1], [a+6]
+set [rlsfr_128+2], [a+5]
+set [rlsfr_128+3], [a+4]
+set [rlsfr_128+4], [a+3]
+set [rlsfr_128+5], [a+2]
+set [rlsfr_128+6], [a+1]
+set [rlsfr_128+7], [a]
+set b, [rlsfr_128]
+and b, 0b1111110000000000
+:rlsfr_loop
+sub b, 1
+shr [rlsfr_128+7], 1
+set [rlsfr_ex], ex
+set ex, 0
+shr [rlsfr_128+6], 1
+bor [rlsfr_128+7], ex
+set ex, 0
+shr [rlsfr_128+5], 1
+bor [rlsfr_128+6], ex
+set ex, 0
+shr [rlsfr_128+4], 1
+bor [rlsfr_128+5], ex
+set ex, 0
+shr [rlsfr_128+3], 1
+bor [rlsfr_128+4], ex
+set ex, 0
+shr [rlsfr_128+2], 1
+bor [rlsfr_128+3], ex
+set ex, 0
+shr [rlsfr_128+1], 1
+bor [rlsfr_128+2], ex
+set ex, 0
+shr [rlsfr_128], 1
+bor [rlsfr_128+1], ex
+set ex, 0
+bor [rlsfr_128], [rlsfr_ex]
+set ex, 0
+set [rlsfr_ex], 0
+ifn b, 0
+set pc, rlsfr_loop
+set b, pop
+set ex, pop
+set pc, pop
+
+:rlsfr_128
+dat 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000
+:rlsfr_ex dat 0

@@ -1,0 +1,113 @@
+; *************************
+; Project: OS
+; File: Keyboard.drv.dasm
+; Finished! untested
+; *************************
+:keyboard_select;Param A. "selects" a keyboard for the keyboard functions to interact with.
+set push, a
+set push, b
+set push, c
+set push, i
+set push, j
+set push, x
+set push, y
+set push, z
+set push, ex
+set [keyboard_index], a
+hwn i
+set j, 0xffff
+set z, a
+:keyboard_search_loop
+add j, 1
+hwq j
+ife a, keyboard_id_a
+ife b, keyboard_id_b
+	sub z, 1
+ife z, 0
+	set [keyboard], j
+ifn z, 0
+	set pc, keyboard_search_loop
+set ex, pop
+set z, pop
+set y, pop
+set x, pop
+set j, pop
+set i, pop
+set c, pop
+set b, pop
+set a, pop
+set pc, pop
+
+:keyboard_amount;Return A. Returns the number of keyboards in A.
+set push, b
+set push, c
+set push, i
+set push, j
+set push, x
+set push, y
+set push, z
+set push, ex
+hwn i
+set j, 0xffff
+set z, 0
+:keyboard_search_loop2
+add j, 1
+hwq j
+ife a, keyboard_id_a
+ife b, keyboard_id_b
+	add z, 1
+ifn j, i
+	set pc, keyboard_search_loop2
+set a, z
+set ex, pop
+set z, pop
+set y, pop
+set x, pop
+set j, pop
+set i, pop
+set c, pop
+set b, pop
+set pc, pop
+
+:keyboard_clear_buffer;Clears the keyboard buffer.
+set push, a
+set a, 0
+hwi [clock]
+set a, pop
+set pc, pop
+
+:keyboard_read_buffer;Return A. Reads the keyboard buffer and returns the ASCII value in A.
+set push, c
+set a, 1
+hwi [clock]
+set a, c
+set c, pop
+set pc, pop
+
+:keyboard_check_keytype;Return A. Reads the keyboard buffer and sets A to 1 is the key in B was typed.
+set push, c
+set c, 0
+set a, 2
+hwi [clock]
+set a, c
+set c, pop
+set pc, pop
+
+:keyboard_int_set;Param A. If A is nonzero, then interrupts will be turned on. If A is zero, the interrupts will be turned off.
+set push, a
+set push, b
+set push, c
+set c, a
+set a, 3
+set b, [keyboard_index]
+bor b, 0x0200
+ife c, 0
+	set b, 0
+hwi [keyboard]
+set c, pop
+set b, pop
+set a, pop
+set pc, pop
+
+:keyboard_index dat 0x0000
+:keyboard dat 0x0000

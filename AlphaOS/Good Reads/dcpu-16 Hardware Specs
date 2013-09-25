@@ -1,0 +1,324 @@
+Name: Generic Clock 
+ID: 0x12d0b402
+Version: 1
+
+Interrupts do different things depending on contents of the A register:
+
+A  BEHAVIOR
+
+0  The B register is read, and the clock will tick 60/B times per second. If B is 0, the clock is turned off.
+
+1  Store number of ticks elapsed since last call to 0 in C register
+
+2  If register B is non-zero, turn on interrupts with message B. If B is zero, disable interrupts
+
+
+When interrupts are enabled, the clock will trigger an interrupt whenever it
+ticks.
+==================================
+Name: Mackapar 3.5" Floppy Drive (M35FD) 
+ID: 0x4fd524c5
+version: 0x000b
+Manufacturer: 0x1eb37e91 (MACKAPAR)
+
+A  Behavior:
+
+0  Poll device. Sets B to the current state (see below) and C to the last error
+   since the last device poll.
+        States:
+   	0x0000 STATE_NO_MEDIA   There's no floppy in the drive.
+	0x0001 STATE_READY      The drive is ready to accept commands.
+	0x0002 STATE_READY_WP   Same as ready, except the floppy is write protected.
+	0x0003 STATE_BUSY       The drive is busy either reading or writing a sector.
+        Errors:
+	0x0000 ERROR_NONE       There's been no error since the last poll.
+	0x0001 ERROR_BUSY       Drive is busy performing an action
+	0x0002 ERROR_NO_MEDIA   Attempted to read or write with no floppy inserted.
+	0x0003 ERROR_PROTECTED  Attempted to write to write protected floppy.
+	0x0004 ERROR_EJECT      The floppy was removed while reading or writing.
+	0x0005 ERROR_BAD_SECTOR The requested sector is broken, the data on it is lost.
+	0xffff ERROR_BROKEN     There's been some major software or hardware problem, try turning off and turning on the device again.
+   
+1  Set interrupt. Enables interrupts and sets the message to X if X is anything
+   other than 0, disables interrupts if X is 0. When interrupts are enabled,
+   the M35FD will trigger an interrupt on the DCPU-16 whenever the state or
+   error message changes.
+
+2  Read sector. Reads sector X to DCPU ram starting at Y.
+   Sets B to 1 if reading is possible and has been started, anything else if it
+   fails. Reading is only possible if the state is STATE_READY or
+   STATE_READY_WP.
+   Protects against partial reads.
+   
+3  Write sector. Writes sector X from DCPU ram starting at Y.
+   Sets B to 1 if writing is possible and has been started, anything else if it
+   fails. Writing is only possible if the state is STATE_READY.
+   Protects against partial writes.
+==================================
+Name: Generic Keyboard 
+ID: 0x30cf7406
+Version: 1
+
+A   BEHAVIOR
+
+0   Clear keyboard buffer
+
+1   Store next key typed in C register, or 0 if the buffer is empty
+
+2   Set C register to 1 if the key specified by the B register is pressed, or 0 if it's not pressed
+
+3   If register B is non-zero, turn on interrupts with message B. If B is zero, disable interrupts
+
+When interrupts are enabled, the keyboard will trigger an interrupt when one or
+more keys have been pressed, released, or typed.
+
+Key numbers are:
+  0x10: Backspace
+  0x11: Return
+  0x12: Insert
+  0x13: Delete
+  0x20-0x7f: ASCII characters
+  0x80: Arrow up
+  0x81: Arrow down
+  0x82: Arrow left
+  0x83: Arrow right
+  0x90: Shift
+  0x91: Control
+==================================
+Name: LEM1802 - Low Energy Monitor
+ID: 0x7349f615
+version: 0x1802
+Manufacturer: 0x1c6c8b36 (NYA_ELEKTRISKA)
+Description:
+    The LEM1802 is a 128x96 pixel color display compatible with the DCPU-16.
+    The display is made up of 32x12 16 bit cells. Each cell displays one
+    monochrome 4x8 pixel character out of 128 available. Each cell has its own
+    foreground and background color out of a palette of 16 colors.
+
+A  Behavior
+
+0: MEM_MAP_SCREEN
+       Reads the B register, and maps the video ram to DCPU-16 ram starting
+       at address B. See below for a description of video ram.
+       If B is 0, the screen is disconnected.
+       When the screen goes from 0 to any other value, the the LEM1802 takes
+       about one second to start up. Other interrupts sent during this time
+       are still processed.
+1: MEM_MAP_FONT
+       Reads the B register, and maps the font ram to DCPU-16 ram starting
+       at address B. See below for a description of font ram.
+       If B is 0, the default font is used instead.
+2: MEM_MAP_PALETTE
+       Reads the B register, and maps the palette ram to DCPU-16 ram starting
+       at address B. See below for a description of palette ram.
+       If B is 0, the default palette is used instead.
+3: SET_BORDER_COLOR
+       Reads the B register, and sets the border color to palette index B&0xF
+4: MEM_DUMP_FONT
+       Reads the B register, and writes the default font data to DCPU-16 ram
+       starting at address B.
+       Halts the DCPU-16 for 256 cycles
+5: MEM_DUMP_PALETTE
+       Reads the B register, and writes the default palette data to DCPU-16
+       ram starting at address B.       
+       Halts the DCPU-16 for 16 cycles
+==================================
+Name: SPC2000 - Suspension Chamber 2000
+ID: 0x40e41d9d
+version: 0x005e
+Manufacturer: 0x1c6c8b36 (NYA_ELEKTRISKA)
+
+A  Behavior
+
+0: GET_STATUS
+       Sets the C register to 1 if the SPC2000 is ready to trigger. If it's not,
+       the B register is set to one of the following values:
+          0x0000: ######################## - EVACUATE VESSEL IMMEDIATELY
+          0x0001: Not in a vacuum
+          0x0002: Not enough fuel
+          0x0003: Inhomogeneous gravitational field
+          0x0004: Too much angular momentum
+          0x0005: One or more cell doors are open
+          0x0006: Mechanical error
+          0xffff: Unknown error - EVACUATE VESSEL IMMEDIATELY
+1: SET_UNIT_TO_SKIP
+       Reads the B register, and reads a 64 bit number from memory address B
+       in big endian, and sets the number of units to skip to that number.
+2: TRIGGER_DEVICE
+       Performs GET_STATUS, and if C is 1, triggers the SCP2000. The status can
+       be read as the result of the GET_STATUS call.
+3: SET_SKIP_UNIT
+       Reads the B register, and sets the size of the unit to skip to one of:
+           0x0000: Milliseconds
+           0x0001: Minutes
+           0x0002: Days
+           0x0003: Years
+==================================
+Name: Mackapar Suspended Particle Exciter Display (SPED-3) 
+ID: 0x42babf3c
+version: 0x0003
+Manufactorer: 0x1eb37e91 (MACKAPAR)
+
+A  Behavior:
+
+0  Poll device. Sets B to the current state (see below) and C to the last error
+   since the last device poll.
+   States:
+   0x0000 STATE_NO_DATA    No vertices queued up, device is in stand-by   
+   0x0001 STATE_RUNNING    The device is projecting lines
+   0x0002 STATE_TURNING    The device is projecting lines and turning
+   Errors:
+   0x0000 ERROR_NONE       There's been no error since the last poll.
+   0xffff ERROR_BROKEN     There's been some major software or hardware problem, try turning off and turning on the device again.
+   
+1  Map region. Sets the memory map offset to X, and the total number of vertices
+   to render to Y. See below for the encoding information.
+
+2  Rotate device. Sets the target rotation for the device to X%360 degrees.
+    .-----------------.
+----! VERTEX ENCODING !---------------------------------------------------------
+    '-----------------'
+  
+Each vertex occupies two words of information in the main DCPU RAM. The data is
+encoded as (in LSB-0 format):
+ First word: YYYYYYYYXXXXXXXX
+Second word: 00000ICCZZZZZZZZ
+Where XXXXXXXX is the X-coordinate of the vertex, YYYYYYYY is the Y-coordinate, 
+ZZZZZZZZ is the Z-coordinate, CC is color, and I is intensity.
+Z is deeper into the screen, if the device is placed face up on the ground, this
+translates to "up" relative to the user.
+Possible color values are 0: black, 1: red, 2: green, 3: blue.
+If the intensity bit is set, the color is drawn as more intense.
+The black color is meant to barely be visible at all, except for in very dim
+environments, or if the intensity bit is set. 
+==================================
+DevCPU does not support this! 
+V      V      V      V      V
+
+ Harold Innovation Technologies
+"If it ain't a HIT, it's a piece of..."
+
+Name: HMD2043 - Harold Media Drive
+ID: 0x74fa4cae 
+version: 0x07c2
+Manufacturer: 0x21544948 (HAROLD_IT)
+Description:
+The HMD2043 is the latest effort on the part of Harold Innovation
+Technologies to futurise the computing landscape of tomorrow; today!
+It is a high-quality disk drive made from the finest materials known to
+man. It supports a vast panopoly of disk formats:
+
+Interrupt behaviour:
+The HMD2043 supports a number of HWI commands based on the value of the A register:
+
+0x0000: QUERY_MEDIA_PRESENT
+If a supported disk is present in the drive, this sets the B
+register to 1. Otherwise, it sets the B register to 0.
+Media should be tested with the 0xFFFF command before use.
+
+0x0001: QUERY_MEDIA_PARAMETERS
+Reads out the physical properties of the media. They are placed
+into registers as follows:
+B = Number of words per sector.
+C = Number of sectors.
+X = 1 if media is write-locked, 0 otherwise.
+
+0x0002: QUERY_DEVICE_FLAGS
+Returns the internal device flags in the B register. The meaning
+of this field is defined in the UPDATE_DEVICE_FLAGS command.
+
+0x0003: UPDATE_DEVICE_FLAGS
+Sets the internal device flags to the value of the B register. The
+available bit flags are, by bit number:
+0: NON_BLOCKING - if set, all slow operations will be performed in
+"non-blocking" mode; that is, the hardware command will return
+control to the DCPU immediately and an interrupt will be issued
+upon completion.
+Note that other commands issued during a non-blocking operation
+will silently fail.
+Until the interrupt is raised, the device will NOT consider the
+non-blocking operation "complete".
+Before issuing a non-blocking command, be sure to set an
+appropriate interrupt message with SET_INTERRUPT_MESSAGE.
+1: MEDIA_STATUS_INTERRUPT - if set, the device will raise an
+interrupt when the media status changes: new media is inserted
+or current media ejected.
+Before enabling media status interrupts, be sure to set an
+appropriate interrupt message with SET_INTERRUPT_MESSAGE.
+The default value is all bits set to zero.
+
+0x0004: QUERY_INTERRUPT_TYPE
+The device will indicate the type of interrupt that it last raised
+by placing one of the following values into the B register:
+0x0000: NONE - No interrupts have been raised yet.
+0x0001: MEDIA_STATUS - Media status changed.
+0x0002: READ_COMPLETE - Read operation completed.
+0x0003: WRITE_COMPLETE - Write operation completed.
+The value of the A register will be changed to the error status of
+the event in question, not the error status of the
+QUERY_INTERRUPT_TYPE command itself.
+
+0x0005: SET_INTERRUPT_MESSAGE
+Specifies the message the device should use for software interrupts.
+Takes one parameter:
+B = Interrupt number to use when interrupting the DCPU.
+If the device raises an interrupt before the message is set, it will
+default to using 0xFFFF.
+
+0x0010: READ_SECTORS
+Reads a contiguous range of sectors into memory. The parameters
+are:
+B = Initial sector to read.
+C = Number of sectors to read.
+X = Start of in-memory buffer to read into.
+The length of time this command will take depends on the state of
+the drive and the physical parameters of the media in use.
+This operation may be performed in non-blocking mode.
+
+0x0011: WRITE_SECTORS
+Writes a contiguous range of sectors to disk. The parameters are:
+B = Initial sector to write.
+C = Number of sectors to write.
+X = Start of in-memory buffer to read from.
+The length of time this command will take depends on the state of
+the drive and the physical parameters of the media in use.
+This operation may be performed in non-blocking mode.
+
+0xFFFF: QUERY_MEDIA_QUALITY
+Determines the quality of the media inserted into the drive. It
+places this value into the B register. It has the following values:
+0x7FFF: Authentic HIT media.
+0xFFFF: Media from other companies.
+All commands replace the contents of the A register with a flag indicating
+whether the command succeeded or failed. The following result codes are
+defined:
+0x0000: ERROR_NONE - The operation either completed or (for non-blocking
+operations) begun successfully.
+0x0001: ERROR_NO_MEDIA - Operation requires media to be present. In long
+operations, this can occur if the media is ejected during the
+operation.
+0x0002: ERROR_INVALID_SECTOR - Attempted to read or write to an invalid
+sector number.
+0x0003: ERROR_PENDING - Attempted to perform a non-blocking operation
+whilst a conflicting operation was already in progress: the most
+recent operation has been aborted.
+ 
+Performance:
+Full-stroke: 200 ms
+Spindle speed: 300 RPM, 5 Hz using Constant Angular Velocity
+Maximum data transfer speed: 768 kbit/s, 48 kw/s
+Head position on media insertion: innermost track
+Head mode: full duplex [1]
+Time to seek to sector =
+floor( abs(target sector - current sector)
+/ (disk sectors per track) )
+* full stroke time / (disk tracks - 1)
+Time to read/write a sector =
+1 / (spindle speed * disk sectors per track)
+Example times:
+1.44 MB 3.5" Disk:
+Time to seek to adjacent track = 2.5 ms
+Time to read/write a sector = 11 ms
+Time to read/write entire disk = 16 s
+[1] The head is capable of reading/writing both sides of the disc at the
+same time.

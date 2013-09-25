@@ -1,0 +1,154 @@
+; *************************
+; Project: OS
+; File: Memory.lib.dasm
+; Finished! tested
+; *************************
+;Param A, B, and C. All of these functions work in a similar manner but with a different operation.
+;Set A to the start of RAM sector, B to the length, and C to a parameter value. 
+;These functions will preform their respective operations on the specified sectors with the value in C.
+
+:memory_copy
+set push, a
+set push, b
+set push, c
+add b, a
+sub a, 1
+sub c, 1
+:mem_copy_loop
+add a, 1
+add c, 1
+set [a], [c]
+ifn a, b
+set pc, mem_copy_loop
+set c, pop
+set b, pop
+set a, pop
+set pc, pop
+
+:memory_fill
+set push, a
+set push, b
+set push, c
+add b, a
+sub a, 1
+:mem_fill_loop
+add a, 1
+set [a], c
+ifn a, b
+set pc, mem_fill_loop
+set c, pop
+set b, pop
+set a, pop
+set pc, pop
+
+:memory_add
+set push, a
+set push, b
+set push, c
+add b, a
+sub a, 1
+:mem_add_loop
+add a, 1
+add [a], c
+ifn a, b
+set pc, mem_add_loop
+set c, pop
+set b, pop
+set a, pop
+set pc, pop
+
+:memory_sub
+set push, a
+set push, b
+set push, c
+add b, a
+sub a, 1
+:mem_sub_loop
+add a, 1
+sub [a], c
+ifn a, b
+set pc, mem_sub_loop
+set c, pop
+set b, pop
+set a, pop
+set pc, pop
+
+:memory_mul
+set push, a
+set push, b
+set push, c
+add b, a
+sub a, 1
+:mem_mul_loop
+add a, 1
+mul [a], c
+ifn a, b
+set pc, mem_mul_loop
+set c, pop
+set b, pop
+set a, pop
+set pc, pop
+
+:memory_div
+set push, a
+set push, b
+set push, c
+add b, a
+sub a, 1
+:mem_div_loop
+add a, 1
+div [a], c
+ifn a, b
+set pc, mem_div_loop
+set c, pop
+set b, pop
+set a, pop
+set pc, pop
+
+:memory_and
+set push, a
+set push, b
+set push, c
+add b, a
+sub a, 1
+:mem_and_loop
+add a, 1
+and [a], c
+ifn a, b
+set pc, mem_and_loop
+set c, pop
+set b, pop
+set a, pop
+set pc, pop
+
+:memory_bor
+set push, a
+set push, b
+set push, c
+add b, a
+sub a, 1
+:mem_bor_loop
+add a, 1
+bor [a], c
+ifn a, b
+set pc, mem_bor_loop
+set c, pop
+set b, pop
+set a, pop
+set pc, pop
+
+:memory_xor
+set push, a
+set push, b
+set push, c
+add b, a
+sub a, 1
+:mem_xor_loop
+add a, 1
+xor [a], c
+ifn a, b
+set pc, mem_xor_loop
+set c, pop
+set b, pop
+set a, pop
+set pc, pop

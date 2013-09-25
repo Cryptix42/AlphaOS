@@ -1,0 +1,105 @@
+; *************************
+; Project: OS
+; File: sped-3.drv.dasm
+; Finished! untested
+; *************************
+:sped3_select;Param A. "selects" a sped3 for the sped3 functions to interact with.
+set push, a
+set push, b
+set push, c
+set push, i
+set push, j
+set push, x
+set push, y
+set push, z
+set push, ex
+set [sped3_index], a
+hwn i
+set j, 0xffff
+set z, a
+:sped3_search_loop
+add j, 1
+hwq j
+ife a, sped3_id_a
+ife b, sped3_id_b
+sub z, 1
+ife z, 0
+set [sped3], j
+ifn z, 0
+set pc, sped3_search_loop
+set ex, pop
+set z, pop
+set y, pop
+set x, pop
+set j, pop
+set i, pop
+set c, pop
+set b, pop
+set a, pop
+set pc, pop
+
+:sped3_amount
+set push, b
+set push, c
+set push, i
+set push, j
+set push, x
+set push, y
+set push, z
+set push, ex
+hwn i
+set j, 0xffff
+set z, 0
+:sped3_search_loop2
+add j, 1
+hwq j
+ife a, sped3_id_a
+ife b, sped3_id_b
+add z, 1
+ifn j, i
+set pc, sped3_search_loop2
+set a, z
+set ex, pop
+set z, pop
+set y, pop
+set x, pop
+set j, pop
+set i, pop
+set c, pop
+set b, pop
+set pc, pop
+
+:sped3_get_status;Return A and B. Sets B last error and A to current state.
+set push, c
+set c, 0
+set b, 0
+set a, 0
+hwi [sped3]
+set a, b
+set b, c
+set c, pop
+set pc, pop
+
+:sped3_map_region;Param A and B. Maps the sped-3 to location A with length B.
+set push, x
+set push, y
+set x, a
+set y, b
+set a, 2
+hwi [sped3]
+set a, x
+set y, pop
+set x, pop
+set pc, pop
+
+:sped3_rotate;Param A. Rotates the sped-3 A%360 degrees.
+set push, x
+set x, a
+set a, 2
+hwi [sped3]
+set a, x
+set x, pop
+set pc, pop
+
+:sped3_index dat 0x0000
+:sped3 dat 0x0000

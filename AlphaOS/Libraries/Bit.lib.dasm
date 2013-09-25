@@ -1,0 +1,46 @@
+; *************************
+; Project: OS
+; File: Bit.lib.dasm
+; Finished! untested
+; *************************
+:Bit_check ;Param A and B. Return C. Sets C to 1 if the bit specified by B in the word A, is 1, and 0 if it is 0.
+set push, a
+set push, b
+set push, i
+set push, ex
+set i, 0b1111111111111110
+shl i, b
+and i, a
+ife i, 0
+set c, 0
+ifn i, 0
+set c, 1
+set ex, pop
+set i, pop
+set b, pop
+set a, pop
+
+:bit_set
+set push, b
+set push, c
+set push, ex
+set c, 0b0000000000000001
+shl c, b
+bor a, c
+set ex, pop
+set c, pop
+set b, pop
+set pc, pop
+
+:bit_reset
+set push, b
+set push, c
+set push, ex
+set c, 0b1111111111111110
+shl c, b
+bor c, ex
+bor a, c
+set ex, pop
+set c, pop
+set b, pop
+set pc, pop

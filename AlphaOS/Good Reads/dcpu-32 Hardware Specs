@@ -1,0 +1,99 @@
+---------------------------------------------------------------------------------
+Name: 5.25" Hard Drive
+ID: 0x9f73eb52, version: 0x0002
+Manufacturer: 0x1EE15247
+
+
+=== DESCRIPTION =================================================================
+All DCPU-32s come standard with a 5.25" 2MB Hard Drive. This hard drive can store
+1,048,576 16-bit words. Data is saved on 64 tracks with 32 sectors per track, for
+a total of 2048 sectors containing 512 words each.
+This hard drive works in synchronous with the DCPU-32. It takes 256 cycles to
+read/write a sector and has a track seeking time of about 2 cycles per track.
+
+
+
+=== INTERRUPT BEHAVIOR ==========================================================
+Interrupts do different things depending on contents of the A register:
+
+ A | BEHAVIOR
+---+----------------------------------------------------------------------------
+ 0 | Read sector. Reads sector B to DCPU-32 ram starting at C. Sets I to the
+   | error code. Halts the DCPU-32 for a minimum of 256 cycles
+ 1 | Write sector. Writes sector B from DCPU-32 ram starting at C. Sets I to the
+   | error code. Halts the DCPU-32 for a minimum of 256 cycles
+---+----------------------------------------------------------------------------
+
+
+--- ERROR CODES ----------------------------------------------------------------
+
+0x0000 ERROR_NONE            The operation was successful
+0x0001 ERROR_RAM_UNDERFLOW   There was insufficient ram (less than 512 words)
+0x0002 ERROR_INVALID_SECTOR  An invalid sector was specified
+0x0003 ERROR_CORRUPT_SECTOR  The sector could not be read
+=============================================================================================================================================
+---------------------------------------------------------------------------------
+Name: 2k WPS Modem
+ID: 0x4d820ee1, version: 0x0002
+Manufacturer: 0x1EE15247
+
+
+=== DESCRIPTION =================================================================
+All DCPU-32s come standard with a 2k word-per-second modem. Each modem has 0xffff 
+ports it can recieve data through. Open ports send data to the DCPU, while closed
+ports drop any data sent to them. Data can still be sent out of closed ports, and 
+all ports are closed by default.
+
+All modems and other networking devices should follow the net-specifications.
+  IP ADDRESS:
+    "All ip addresses are 16-bit integers. The address 0xffff is reserved. All 
+    network devices on a network must have unique ip addresses. Sub-nets should be 
+    created to avoid repeats."
+
+  DATA TRANSFER:
+    "Data (a packet) from one sender is guaranteed to reach its destination in the
+    order it is sent. If there is another sender at the same time the data from
+    each sender will come in the order it was sent, but the two senders data will
+    be intertwined."
+    * Read the value of the B register after loading a packet to differentiate 
+      between the senders.
+
+
+
+=== INTERRUPT BEHAVIOR ==========================================================
+Interrupts do different things depending on contents of the A register (shown
+here in hexadecimal). 'B' and 'C' in the description are references the the value
+of the B and C registers.
+
+ A | BEHAVIOR
+---+----------------------------------------------------------------------------
+ 0 | Opens port B
+ 1 | Closes port B
+ 2 | Polls port B and sets register C the the status code
+ 3 | Sets the target IP to B, this must be called at least once before sending
+   | a packet
+ 4 | Appends the value of the B register to the end of the current packet
+ 5 | Sends the current packet to the target IP
+ 6 | Loads the next incoming packet from the packet buffer, preparing it to be
+   | read from
+ 7 | Sets the B register to the sender of the currently loaded packet, or 0xffff
+   | if there is no packet loaded
+ 8 | Reads the next word from the currently loaded packet, and sets B to the
+   | word read, or 0x0 if reached end of the packet
+ 9 | If register B is non-zero, turn on interrupts with message B. If B is zero,
+   | disable interrupts
+ A | Sets register B to your IP address
+ B | Sends a request for the IP specified by the B register. you can only request
+   | an IP within the range of 0x7001..0xffffe (inclusive). if successful your IP
+   | will be automatically updated, otherwise nothing will change. This process
+   | occurs asynchronous from the DCPU and can take up to 2 seconds to be processed.
+---+----------------------------------------------------------------------------
+
+When interrupts are enabled, the modem will trigger an interrupt whenever it
+receives a packet.
+
+--- STATUS CODES ----------------------------------------------------------------
+
+0x0000 PORT_CLOSED      The port is closed and ignoring incoming packets
+0x0001 PORT_OPEN        The port is open and forwarding incoming packets
+0x0002 PORT_CONNECTING  The modem is not yet connected to the internet  

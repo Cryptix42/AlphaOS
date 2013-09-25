@@ -1,0 +1,107 @@
+; *************************
+; Project: OS
+; File: Clock.drv.dasm 
+; Finished! untested
+; *************************
+:clock_select;Param A. "selects" a clock for the clock functions to interact with.
+set push, a
+set push, b
+set push, c
+set push, i
+set push, j
+set push, x
+set push, y
+set push, z
+set push, ex
+set [clock_index], a
+hwn i
+set j, 0xffff
+set z, a
+:clock_search_loop
+add j, 1
+hwq j
+ife a, clock_id_a
+ife b, clock_id_b
+sub z, 1
+ife z, 0
+set [clock], j
+ifn z, 0
+set pc, clock_search_loop
+set ex, pop
+set z, pop
+set y, pop
+set x, pop
+set j, pop
+set i, pop
+set c, pop
+set b, pop
+set a, pop
+set pc, pop
+
+:clock_amount
+set push, b
+set push, c
+set push, i
+set push, j
+set push, x
+set push, y
+set push, z
+set push, ex
+hwn i
+set j, 0xffff
+set z, 0
+:clock_search_loop2
+add j, 1
+hwq j
+ife a, clock_id_a
+ife b, clock_id_b
+add z, 1
+ifn j, i
+set pc, clock_search_loop2
+set a, z
+set ex, pop
+set z, pop
+set y, pop
+set x, pop
+set j, pop
+set i, pop
+set c, pop
+set b, pop
+set pc, pop
+
+:clock_tick_set;Param A. Set A to a number and the clock will tick 60/A times per second.
+set push, a
+set push, b
+set b, a
+set a, 0
+hwi [clock]
+set b, pop
+set a, pop
+set pc, pop
+
+:clock_tick_since;Return A. Returns the number of ticks since last time the ticks were set.
+set push, c
+set a, 1
+hwi [clock]
+set a, c
+set c, pop
+set pc, pop
+
+:clock_int_set;Param A. If A is nonzero, interrupts will be activated. If A is zero, interrupts will be deactivated.
+set push, a
+set push, b
+set push, c
+set c, a
+set a, 2
+set b, [clock_index]
+bor b, 0x0100
+ife c, 0
+set b, 0
+hwi [clock]
+set c, pop
+set b, pop
+set a, pop
+set pc, pop
+
+:clock_index dat 0x0000
+:clock dat 0x0000
