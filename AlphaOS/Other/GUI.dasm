@@ -181,7 +181,9 @@ set a, FilesystemGUIend_label
 set b, 0xf0
 jsr string_color
 bor [file_cursor], 0xf000
-;FINISH THIS!
+:filesystem_name_loop
+
+jsr fd_filename
 :filesystem_menu_loop
 set a, [terminal_keyboard]
 jsr keyboard_select
