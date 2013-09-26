@@ -71,11 +71,7 @@ ife a, key_1
 ife a, key_2
 	set pc, options_menu_code
 ife a, key_3
-	set pc, diagnostics_menu_code
-ife a, key_4
 	set pc, filesystem_code
-ife a, key_5
-	set pc, main_menu_loop
 jsr consoleUpdate
 set pc, main_menu_loop
 
@@ -91,16 +87,6 @@ set a, [terminal_keyboard]
 jsr keyboard_select
 jsr keyboard_read_buffer
 jsr keyboard_clear_buffer
-ife a, key_1
-	set pc, programs_menu_loop
-ife a, key_2
-	set pc, programs_menu_loop
-ife a, key_3
-	set pc, programs_menu_loop
-ife a, key_4
-	set pc, programs_menu_loop
-ife a, key_5
-	set pc, programs_menu_loop
 ife a, key_backspace
 	set pc, main_menu_code
 jsr consoleUpdate
@@ -122,51 +108,10 @@ ife a, key_1
 	set pc, info_menu_code
 ife a, key_2
 	set pc, credits_menu_code
-ife a, key_3
-	set pc, options_menu_loop
-ife a, key_4
-	set pc, options_menu_loop
-ife a, key_5
-	set pc, options_menu_loop
 ife a, key_backspace
 	set pc, main_menu_code
 jsr consoleUpdate
 set pc, options_menu_loop
-
-:diagnostics_menu_code
-jsr clock_amount
-jsr parse_hexvalue
-jsr set_clock_num;use after parse hex value
-jsr keyboard_amount
-jsr parse_hexvalue
-jsr set_keyboard_num;use after parse hex value
-jsr lem1802_amount
-jsr parse_hexvalue
-jsr set_lem1802_num;use after parse hex value
-jsr m35fd_amount
-jsr parse_hexvalue
-jsr set_m35fd_num;use after parse hex value
-jsr sped3_amount
-jsr parse_hexvalue
-jsr set_sped3_num;use after parse hex value
-jsr spc2000_amount
-jsr parse_hexvalue
-jsr set_spc2000_num;use after parse hex value
-set a, terminal_VRAM
-sub a, 1
-set c, diagnosticsDisplay
-set b, diagnosticsEnd
-sub b, diagnosticsDisplay
-jsr memory_copy
-:diagnostics_menu_loop
-set a, [terminal_keyboard]
-jsr keyboard_select
-jsr keyboard_read_buffer
-jsr keyboard_clear_buffer
-ife a, key_backspace
-	set pc, main_menu_code
-jsr consoleUpdate
-set pc, diagnostics_menu_loop
 
 :filesystem_code
 set a, terminal_VRAM
@@ -181,9 +126,9 @@ set a, FilesystemGUIend_label
 set b, 0xf0
 jsr string_color
 bor [file_cursor], 0xf000
-:filesystem_name_loop
-
-jsr fd_filename
+;:filesystem_name_loop
+;FINISH!
+;jsr fd_filename
 :filesystem_menu_loop
 set a, [terminal_keyboard]
 jsr keyboard_select
@@ -272,88 +217,6 @@ set b, pop
 set a, pop
 set pc, pop
 
-:parse_hexvalue;takes the hex value in A and makes a 4 letter string in A, B, C, and I.
-and a, 0xf000
-shr a, 12
-set b, a
-and b, 0x0f00
-shr b, 8
-set c, a
-and c, 0x00f0
-shr c, 4
-set i, a
-and i, 0x000f
-ifg a, 9
-	jsr parse_a_sub
-ifg b, 9
-	jsr parse_b_sub
-ifg c, 9
-	jsr parse_c_sub
-ifg i, 9
-	jsr parse_i_sub
-ifl a, 0xa
-	bor a, 0xf030
-ifl b, 0xa
-	bor b, 0xf030
-ifl c, 0xa
-	bor c, 0xf030
-ifl i, 0xa
-	bor i, 0xf030
-set pc, pop
-:parse_a_sub
-bor a, 0xf060
-sub a, 9
-set pc, pop
-:parse_b_sub
-bor b, 0xf060
-sub b, 9
-set pc, pop
-:parse_c_sub
-bor c, 0xf060
-sub c, 9
-set pc, pop
-:parse_i_sub
-bor i, 0xf060
-sub i, 9
-set pc, pop
-
-:set_clock_num
-set [clock_num], a
-set [clock_num+1], b
-set [clock_num+2], c
-set [clock_num+3], i
-set pc, pop
-:set_keyboard_num
-set [keyboard_num], a
-set [keyboard_num+1], b
-set [keyboard_num+2], c
-set [keyboard_num+3], i
-set pc, pop
-:set_lem1802_num
-set [lem1802_num], a
-set [lem1802_num+1], b
-set [lem1802_num+2], c
-set [lem1802_num+3], i
-set pc, pop
-:set_m35fd_num
-set [m35fd_num], a
-set [m35fd_num+1], b
-set [m35fd_num+2], c
-set [m35fd_num+3], i
-set pc, pop
-:set_sped3_num
-set [sped3_num], a
-set [sped3_num+1], b
-set [sped3_num+2], c
-set [sped3_num+3], i
-set pc, pop
-:set_spc2000_num
-set [spc2000_num], a
-set [spc2000_num+1], b
-set [spc2000_num+2], c
-set [spc2000_num+3], i
-set pc, pop
-
 dat 0 0 0 0
 :consoleDisplay 
               dat "  Press number keys to select   "
@@ -368,8 +231,8 @@ dat 0
               dat "                                "
 :startOption1 dat " 1. Programs                    "
 :startOption2 dat " 2. Computer                    "
-:startOption3 dat " 3. Diagnostics                 "
-:startOption4 dat " 4. FileSystem                  "
+:startOption3 dat " 3. FileSystem                  "
+:startOption4 dat "                                "
 :startOption5 dat "                                "
               dat "                                "
 :mainEnd
@@ -377,9 +240,9 @@ dat 0
 :programsDisplay dat 1
               dat "========AlphaOS Programs========"
               dat "        Unfinished              "
-:progOption1  dat " 1. Timekeeper                  "
-:progOption2  dat " 2. Notepad                     "
-:progOption3  dat " 3. Image veiwer                "
+:progOption1  dat "                                "
+:progOption2  dat "                                "
+:progOption3  dat "                                "
 :progOption4  dat "                                "
 :progOption5  dat "                                "
               dat "                                "
@@ -396,25 +259,14 @@ dat 0
               dat "                                "
 :optionsEnd
 
-:diagnosticsDisplay dat 1
-              dat "=======AlphaOS Diagnostics======"
-:clock_num    dat "0000 clocks                     "
-:keyboard_num dat "0000 keyboards                  "
-:lem1802_num  dat "0000 lem1802 moniters           "
-:m35fd_num    dat "0000 m35fd floppy drives        "
-:sped3_num    dat "0000 sped-3 vector displays     "
-:spc2000_num  dat "0000 spc2000 sleep chambers     "
-              dat "                                "
-:diagnosticsEnd
-
 :infoDisplay dat 1
               dat "=========AlphaOS Info==========="
               dat " Computer: DCPU-16              "
               dat " Specs: 128K RAM, 100kHz        "
-              dat " Free RAM: 32K file allocation  "
+              dat " Free RAM: 64K file allocation  "
               dat " FileSystem: JAR(Just A Room)   "
               dat " OS: AlphaOS                    "
-              dat " OS version: indev 0.6          "
+              dat " OS version: indev 0.71         "
               dat "                                "
 :infoEnd
 
