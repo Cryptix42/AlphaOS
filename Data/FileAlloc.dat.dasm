@@ -1,0 +1,178 @@
+; *************************
+; Project: OS
+; File: FileAlloc.dat.dasm
+; *************************
+:file_start
+:sector1
+set pc, OSstart
+.reserve 510
+:sector2
+.reserve 512
+:sector3
+.reserve 512
+:sector4
+.reserve 512
+:sector5
+.reserve 512
+:sector6
+.reserve 512
+:sector7
+.reserve 512
+:sector8
+.reserve 512
+:sector9
+.reserve 512
+:sector10
+.reserve 512
+:sector11
+.reserve 512
+:sector12
+.reserve 512
+:sector13
+.reserve 512
+:sector14
+.reserve 512
+:sector15
+.reserve 512
+:sector16
+.reserve 512
+:sector17
+.reserve 512
+:sector18
+.reserve 512
+:sector19
+.reserve 512
+:sector20
+.reserve 512
+:sector21
+.reserve 512
+:sector22
+.reserve 512
+:sector23
+.reserve 512
+:sector24
+.reserve 512
+:sector25
+.reserve 512
+:sector26
+.reserve 512
+:sector27
+.reserve 512
+:sector28
+.reserve 512
+:sector29
+.reserve 512
+:sector30
+.reserve 512
+:sector31
+.reserve 512
+:sector32
+.reserve 512
+:file_extension_start
+:sector33
+.reserve 512
+:sector34
+.reserve 512
+:sector35
+.reserve 512
+:sector36
+.reserve 512
+:sector37
+.reserve 512
+:sector38
+.reserve 512
+:sector39
+.reserve 512
+:sector40
+.reserve 512
+:sector41
+.reserve 512
+:sector42
+.reserve 512
+:sector43
+.reserve 512
+:sector44
+.reserve 512
+:sector45
+.reserve 512
+:sector46
+.reserve 512
+:sector47
+.reserve 512
+:sector48
+.reserve 512
+:sector49
+.reserve 512
+:sector50
+.reserve 512
+:sector51
+.reserve 512
+:sector52
+.reserve 512
+:sector53
+.reserve 512
+:sector54
+.reserve 512
+:sector55
+.reserve 512
+:sector56
+.reserve 512
+:sector57
+.reserve 512
+:sector58
+.reserve 512
+:sector59
+.reserve 512
+:sector60
+.reserve 512
+:sector61
+.reserve 512
+:sector62
+.reserve 512
+:sector63
+.reserve 512
+:sector64
+.reserve 512
+:file_end
+dat 0
+
+:filesystem_GUI_start
+dat "=======AlphaOS Filesystem========"
+.reserve 256
+.reserve 256
+.reserve 256
+.reserve 256
+.reserve 256
+.reserve 256
+.reserve 256
+.reserve 256
+.reserve 256
+.reserve 256
+.reserve 256
+.reserve 256
+.reserve 256
+.reserve 256
+.reserve 256
+.reserve 256
+.reserve 256
+.reserve 256
+.reserve 256
+.reserve 256
+.reserve 256
+.reserve 256
+.reserve 256
+.reserve 256
+.reserve 256
+.reserve 256
+.reserve 256
+.reserve 256
+.reserve 256
+.reserve 256
+.reserve 256
+.reserve 160
+:filesystemGUIend
+.reserve 96
+:FilesystemGUIend_label dat "=======FilesystemGUI end========"
+.reserve 224
+:filesystem_GUI_end
+dat 0

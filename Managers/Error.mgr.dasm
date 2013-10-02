@@ -1,0 +1,45 @@
+; *************************
+; Project: OS
+; File: Error.mgr.dasm
+; *************************
+:error_return;Return A. Returns the latest OS error since last call to this function.
+set a, [OSerror]
+set [OSerror], 0x0000
+set pc, pop
+
+;filedriver errors
+:fd_error_WP
+set [OSerror], error_fd_WP
+set pc, pop
+
+:fd_error_nomedia
+set [OSerror], error_fd_nomedia
+set pc, pop
+
+:fd_error_busy
+set [OSerror], error_fd_busy
+set pc, pop
+
+:fd_error_invalid_fs
+set [OSerror], error_fd_invFS
+set [table_owner], 0xffff
+set pc, pop
+
+:fd_error_corrupt
+set [OSerror], error_fd_corrupt
+set pc, pop
+
+:fd_error_noroot
+set [OSerror], error_fd_noroot
+set pc, pop
+
+:fd_error_nofolder
+set [OSerror], error_fd_nofolder
+set pc, pop
+
+;interface errors
+:int_error_no_such_device
+set [OSerror], error_in_nsd
+set pc, pop
+
+:OSerror dat 0

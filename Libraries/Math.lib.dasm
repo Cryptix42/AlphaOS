@@ -1,0 +1,41 @@
+; *************************
+; Project: OS
+; File: Math.lib.dasm
+; Finished! For now. untested
+; *************************
+:math_exponent;Param A and B. Return A. Returns A^B in A.
+set push, i
+set i, b
+:exp_loop
+ifl i, 1
+set pc, exp_end
+mul a, b
+std pc, exp_loop
+:exp_end
+set i, pop
+set pc, pop
+            
+:math_flipsign;Param A. Return A. Flips the sign of the value in A. A is treated as signed.
+xor a, 0xFFFF
+add a, 1
+set pc, pop
+            
+:math_sqrt;Param A. Return A. Set A to a number and it will return the square root in A.
+set push, c
+set c, 0
+:sqrt_loop
+add c, 1
+set b, c
+mul b, c
+ifn b, a
+set pc, sqrt_loop
+set a, c
+set c, pop
+set pc, pop
+
+:math_absolute;Param A. Return A. Returns the absolute value of A in A. A is treated as signed.
+ifa a, 0 
+set pc, pop 
+xor a, 0xFFFF 
+add a, 1 
+set pc, pop

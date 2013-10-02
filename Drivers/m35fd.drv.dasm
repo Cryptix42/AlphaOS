@@ -1,0 +1,135 @@
+; *************************
+; Project: OS
+; File: m35fd.drv.dasm
+; *************************
+:m35fd_select;Param A. "selects" a m35fd for the m35fd functions to interact with.
+set push, a
+set push, b
+set push, c
+set push, i
+set push, j
+set push, x
+set push, y
+set push, z
+set push, ex
+set [m35fd_index], a
+hwn i
+set j, 0xffff
+set z, a
+:m35fd_search_loop
+add j, 1
+hwq j
+ife a, m35fd_id_a
+ife b, m35fd_id_b
+	sub z, 1
+ife z, 0
+set [m35fd], j
+ifn z, 0
+	set pc, m35fd_search_loop
+set ex, pop
+set z, pop
+set y, pop
+set x, pop
+set j, pop
+set i, pop
+set c, pop
+set b, pop
+set a, pop
+set pc, pop
+
+:m35fd_amount
+set push, b
+set push, c
+set push, i
+set push, j
+set push, x
+set push, y
+set push, z
+set push, ex
+hwn i
+set j, 0xffff
+set z, 0
+:m35fd_search_loop2
+add j, 1
+hwq j
+ife a, m35fd_id_a
+ife b, m35fd_id_b
+	add z, 1
+ifn j, i
+	set pc, m35fd_search_loop2
+set a, z
+set ex, pop
+set z, pop
+set y, pop
+set x, pop
+set j, pop
+set i, pop
+set c, pop
+set b, pop
+set pc, pop
+
+:m35fd_check_status;returns the status of the m35fd in A and the latest error in B.
+set push, c
+set a, 0
+hwi [m35fd]
+set a, b
+set b, c
+set c, pop
+set pc, pop
+
+:m35fd_int_set;Param A. If A is nonzero, interrupts will be activated. If A is zero, interrupts will be deactivated.
+set push, a
+set push, x
+set x, [m35fd_index]
+bor x, 0x0200
+ife a, 0
+set x, 0
+set a, 1
+hwi [m35fd]
+set x, pop
+set a, pop
+set pc, pop
+
+:m35fd_sector_read;Param A and B. Reads sector A to RAM starting at B. Returns A as 0xffff and B as something else if reading failed.
+set push, a
+set push, b
+set push, x
+set push, y
+set x, a
+set y, b
+set a, 2
+hwi [m35fd]
+ifn b, 1
+jsr set_RW_error
+set y, pop
+set x, pop
+set b, pop
+set a, pop
+set pc, pop
+
+:m35fd_sector_write;Param A and B. Writes sector A from RAM starting at B. Returns A as 0xffff and B as something else if writing failed.
+set push, a
+set push, b
+set push, x
+set push, y
+set x, a
+set y, b
+set a, 3
+hwi [m35fd]
+ifn b, 1
+jsr set_RW_error
+set y, pop
+set x, pop
+set b, pop
+set a, pop
+set pc, pop
+
+:set_RW_error
+jsr m35fd_check_status
+set [m35fd_state_source], [m35fd_index]
+set [m35fd_state_buffer], a
+set [m35fd_error_buffer], b
+set pc, pop
+
+:m35fd_index dat 0x0000
+:m35fd dat 0x0000

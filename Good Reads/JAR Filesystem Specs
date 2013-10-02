@@ -1,0 +1,191 @@
+Just A Room File System (JAR)
+
+------------------
+    1. Features
+------------------
+    + The FS uses 1 sector for header and up to 1439 sectors to store data.
+    + Disk can be named.
+    + Folders.
+    + The size of a file is restricted only by the disk's size.
+
+    +/- The FS can store up to 255 files and folders in each folder.
+
+    - The FS is compatible only with standard 3.5" 1440 KB floppy disks.
+    - Files can be stored only sequentially.
+
+------------------
+    2. Description
+------------------
+
+-----------------------------------------------
+    2.1. Structure of the first sector (header)
+-----------------------------------------------
+
+    Size is given in words.
+    The maximum size is 512 words (1 sector).
+
+    +------+--------------+
+    | Size | Name         |
+    +------+--------------+
+    | 1    | magic_number |
+    +------+--------------+
+    | 1    | disk_info    |
+    +------+--------------+
+    | 2    | file_info_1  |
+    +------+--------------+
+    | 2    | file_info_2  |
+    +------+--------------+
+    | 2    | ...          |
+    +------+--------------+
+
+1) magic_number
+    The magic number is 0xA1FA. It defines the file system as JAR.
+
+2) disk_info
+    This field has the following bit format:
+        aaaaabbbbbbbbbbb
+    Where aaaaa (5 bits) defines the name of a disk, and bbbbbbbbbbb (11 bits)
+defines the first free sector.
+    The name is capital letter from the ASCII table. A letter's code is
+        010aaaaa
+
+3) file_info
+    This field has the following bit format:
+        aaaaaaaaaaaaaaaa bbbbbbbbbbbccccc
+    Where aaaaaaaaaaaaaaaa (16 bits) defines the file's type, bbbbbbbbbbb
+(11 bits) defines the file's starting sector, and ccccc (5 bits) defines the
+file's length - number of additional sectors (max 31).
+    The file's type is a magic number (or the first word of a magic number) of
+some filetype. There are special (or fake) filetypes:
+
+        a. 0xfff0. It defines that the sequence of sectors is free.
+
+        b. 0xfff1. It defines that the sector is folder. When file_info refers
+        to folder, it has the following bit format:
+            1111111111110001 bbbbbbbbbbb00000
+        Where bbbbbbbbbbb (11 bits) defines the folder's sector.
+
+        c. 0xfff2. It defines that the sequence of sectors is additional space
+        for a file.
+
+        d. 0xffff. It defines that the sequence of sectors is broken.
+
+-----------------------------------------------
+    2.2. Structure of a folder
+-----------------------------------------------
+
+    Size is given in words.
+    The maximum size is 512 words (1 sector).
+
+    +------+--------------+
+    | Size | Name         |
+    +------+--------------+
+    | 2    | folder_name  |
+    +------+--------------+
+    | 2    | file_info_1  |
+    +------+--------------+
+    | 2    | file_info_2  |
+    +------+--------------+
+    | 2    | ...          |
+    +------+--------------+
+
+1) folder_name
+    This field has the following bit format:
+        0aaaaaaa0bbbbbbb 0ccccccc0ddddddd
+    Where aaaaaaa, bbbbbbb, ccccccc, ddddddd (7 bits each) define the folder's
+name (alphanumeric characters from the ASCII table). The name starts with the
+aaaaaaa field, unused characters must be set to null.
+
+2) file_info
+    Described above.
+
+-----------------------------------------------
+    2.3. Structure of a file
+-----------------------------------------------
+
+    Size is given in words.
+
+    +------+--------------+
+    | Size | Name         |
+    +------+--------------+
+    | 8    | file_name    |
+    +------+--------------+
+    | ?    | file_data    |
+    +------+--------------+
+
+1) file_name
+    Every word of this field has the following bit format:
+        0aaaaaaa0bbbbbbb
+    Where aaaaaaa and bbbbbbb (7 bits each) define a part of the file's name
+(any non-control characters from the ASCII table). The name starts with the
+aaaaaaa field of the first word, unused characters must be set to null.
+
+2) file_data
+    This field stores raw data about file.
+
+------------------
+    3. HOWTO
+------------------
+1) How to format disk.
+    Write the magic number to the first word. Then write disk_info to the
+second word (the first free sector is 1). Then write null to every other word
+of the first sector. Now the file system is ready for use.
+
+2) How to write a file.
+    FSIZE is the size of your file in sectors.
+    Calculate the number of file_info records (FIR) by: FIR=ceil(FSIZE/32).
+    Calculate the number of additional sectors in the last file_info record
+(ASN) by: ASN=(FSIZE-32*(FIR-1))-1.
+    Read the second word and find the first free sector (FFS). Calculate the
+number of free sectors (FRS) by: FRS=1440-FFS.
+    Choose a folder (header is root folder). Read every second word from the
+choosen sector (starting word (SW) is 2) to find filetypes. End searching when
+filetype is null. If (SW+FIR*2)>512, set SW to null. If you did not find null
+filetype, set SW to null.
+
+    If FRS>=FSIZE and SW is not null, use the a. point.
+    If FRS<FSIZE and SW is not 2, use the b. point.
+    Otherwise it is impossible to save the file to this folder.
+
+        a. Write your file to the disk sequentially (starting sector is FFS),
+        according to "2.2. Structure of a folder" or "2.3. Structure of a
+        file" points. Then write file_info records (the number of them is FIR)
+        to the choosen sector. Starting word for any file_info is SW+2*n,
+        starting sector is FFS+32*n (n=0,1,...,FIR-1). Filetype depends on your
+        file for the first file_info, and is 0xfff2 for others. The number of
+        additional sectors is ASN for the last file_info and is 31 for others.
+        Finally, calculate new FFS (NFFS) and write it to the second word
+        (NFFS=FFS+FSIZE).
+
+        b. Read every second word from the choosen sector (starting word is 2)
+        to find filetypes. When you find 0xfff0 filetype, read the next two
+        words to find starting sector (S), length (L) of the free sequence of
+        sectors and the next filetype (NFT). Start calculating the total number
+        of free sectors (FRS) by: FRS=L+1. If NFT=0xfff2, read the next two
+        words to find new L and new NFT. Continue calculating FRS
+        (FRS=FRS+L+1). Repeat until NFT is not 0xfff2. If FRS<FSIZE, continue
+        searching of 0xfff0 filetype. When FRS>=FSIZE, write your file to the
+        disk sequentially (starting sector is S), according to "2.2. Structure
+        of a folder" or "2.3. Structure of a file" points. Then change ONLY
+        filetype of the first file_info. If you can not find FRS>=FSIZE or even
+        0xfff0 filetype, it is impossible to save the file to this folder.
+        NOTE: To reduce wasting of sectors, it is recommended to search for
+        the best FRS in prejudice of performance speed.
+
+3) How to delete a file/folder.
+    Just change the filetype to 0xfff0 (only in the header/folder sector and
+only in the first file_info).
+
+4) How to create a folder.
+    Write a folder to a disk as regular file (described above). At the
+beginning the folder has only name, every other word must be set to null.
+
+
+
+Cryptix (http://www.0x10cforum.com/profile/2423132)
+
+in cooperation with
+
+Fen-ok (http://www.0x10cforum.com/profile/4855939)
+
+24 September 2013

@@ -1,0 +1,322 @@
+; *************************
+; Project: AlphaOS
+; File: FileDriver.dasm
+; *************************
+;Param A and B. 
+;If A is 0 load root from media_ready or media_ready_WP floppy drive chosen by B.
+;If A is 1 then load object from loaded table(file, folder, extension).
+:fd_load 
+
+set pc, pop
+
+;Param A. 
+;If A is 0, then wipe table ram and table vars.
+;If A is 1, then wipe file and file extension allocation and all file vars.
+:fd_unload 
+ife a, 0
+jsr fd_unload_table
+ife a, 1
+jsr fd_unload_file
+set pc, pop
+
+;Param A. 
+;If A is 0, then save table to origin sector.
+;If A is 1 then save file to disk sequentially (and then the extention if it has one).
+;If A is 3, then overwrite file onto a filespace from the table.
+;If A is 4, then save loaded folder table sequentially onto a filespace from the table (file and filespace must be equal in size or it will generate an error). 
+:fd_save 
+
+set pc, pop
+
+;Param A. 
+;Labels the file chosen by A on the loaded table to a sequence of empty sectors.
+:fd_delete 
+
+set pc, pop
+
+;Param A and B. 
+;If A is 0, then move the file data of file B from the loaded table to the folder specified by C in the table
+;If A is 1, then move the file data of file B to the root table.
+:fd_move 
+
+set pc, pop
+
+;Param A and B. 
+;If A is 0, then set B to the location of the chosen folder name (see JAR filesystem Specs for info on folder names), and his will unload the currently loaded folder and create a new one.
+;If A is 1, then set B to the location of the chosen file name (see JAR filesystem Specs for info on file names), and his will unload the currently loaded file and create a new one.
+:fd_create 
+
+set pc, pop
+
+;Param A. Return B. 
+;Set A to the object on the table and it will return the name of the file/folder to location B.
+;If there is no table loaded then it will return the root name of the disk from drive A to location B.
+:fd_filename
+ife [table_owner], 0xffff
+jsr fd_get_root_name
+mul a, 2
+add a, table_filedata
+ife [a], 0xfff1
+jsr fd_get_folder_name
+ifl [a], 0xfff0
+jsr fd_get_file_name
+set pc, pop
+
+:table
+dat 0,0
+:table_filedata
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+:table_owner dat 0
+:table_WP_flag dat 0
+:table_type dat 0 
+:table_origin_sector dat 0
+
+:current_loaded_filetype   dat 0xfff0 ;magic number
+:current_loaded_filelength dat 0x0000 ;in sectors
+
+:useful_sector
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+;///////SUBROUTINES////////
+:fd_table_search_folder
+set push, i
+set push, j
+set i, 0
+set j, table
+:table_search_folder_loop
+add j, 2
+add i, 1
+ife [j], 0xfff1
+add i, 1
+ifn i, a
+set pc, table_search_folder_loop
+set a, j
+set j, pop
+set i, pop
+set pc, pop
+
+:fd_table_search_file
+set push, i
+set push, j
+set i, 0
+set j, table
+:table_search_file_loop
+add j, 2
+add i, 1
+ifl [j], 0xfff0
+add i, 1
+ifn i, a
+set pc, table_search_file_loop
+set a, j
+set j, pop
+set i, pop
+set pc, pop
+
+:fd_get_root_name
+set push, a
+set push, i
+set i, a
+jsr m35fd_amount
+ife a, 0
+jsr int_error_no_such_device
+ife a, 0
+set pc, get_root_name_end
+set a, 0
+set a, i
+set i, pop
+jsr m35fd_select
+set push, b
+jsr m35fd_check_status
+ife a, 0
+jsr root_error_name
+ife a, 1
+jsr root_ready_name
+ife a, 2
+jsr root_ready_name
+ife a, 3
+jsr root_error_name
+set b, pop
+:get_root_name_end
+set a, 0
+jsr fd_unload
+set a, pop
+set pc, pop
+:root_error_name
+set push, b
+set push, c
+set [b], 0x4045
+set a, b
+add a, 1
+set b, 31
+set c, 0x20
+jsr memory_fill
+set c, pop
+set b, pop
+set pc, pop
+:root_ready_name
+set push, b
+set push, c
+set push, a
+set push, b
+set a, 0
+set b, useful_sector
+jsr m35fd_sector_read
+set b, pop
+set b, pop
+set [b], [useful_sector+1]
+and [b], 0b1111100000000000
+shr [b], 11
+bor [b], 0x20
+set a, b
+add a, 1
+set b, 31
+set c, 0x20
+jsr memory_fill
+set c, pop
+set b, pop
+set pc, pop
+set pc, pop
+
+:fd_get_folder_name;Param A. Return B.
+set push, a
+set push, a
+set a, [table_owner]
+jsr m35fd_select
+set a, pop
+set push, b
+set push, c
+set push, b
+set a, [a]
+and a, 0b1111111111100000
+shr a, 5
+set b, useful_sector
+jsr m35fd_sector_read
+set b, pop
+set [b], [useful_sector]
+and [b], 0xff00
+shr [b], 8
+set [b+1], [useful_sector]
+and [b+1], 0x00ff
+set [b+2], [useful_sector+1]
+and [b+2], 0xff00
+shr [b+2], 8
+set [b+3], [useful_sector+1]
+and [b+3], 0x00ff
+set a, b
+add a, 3
+set b, 28
+set c, 0x20
+jsr memory_fill
+set c, pop
+set b, pop
+set a, pop
+set pc, pop
+
+:fd_get_file_name;Param A. Return B.
+set push, a
+set push, a
+set a, [table_owner]
+jsr m35fd_select
+set a, pop
+set push, b
+set push, c
+set push, b
+set a, [a]
+and a, 0b1111111111100000
+shr a, 5
+set b, useful_sector
+jsr m35fd_sector_read
+set b, pop
+set [b], [useful_sector]
+and [b], 0xff00
+shr [b], 8
+set [b+1], [useful_sector]
+and [b+1], 0x00ff
+set [b+2], [useful_sector+1]
+and [b+2], 0xff00
+shr [b+2], 8
+set [b+3], [useful_sector+1]
+and [b+3], 0x00ff
+set [b+4], [useful_sector+2]
+and [b+4], 0xff00
+shr [b+4], 8
+set [b+5], [useful_sector+2]
+and [b+5], 0x00ff
+set [b+6], [useful_sector+3]
+and [b+6], 0xff00
+shr [b+6], 8
+set [b+7], [useful_sector+3]
+and [b+7], 0x00ff
+set [b+8], [useful_sector+4]
+and [b+8], 0xff00
+shr [b+8], 8
+set [b+9], [useful_sector+4]
+and [b+9], 0x00ff
+set [b+10], [useful_sector+5]
+and [b+10], 0xff00
+shr [b+10], 8
+set [b+11], [useful_sector+5]
+and [b+11], 0x00ff
+set [b+12], [useful_sector+6]
+and [b+12], 0xff00
+shr [b+12], 8
+set [b+13], [useful_sector+6]
+and [b+13], 0x00ff
+set [b+14], [useful_sector+7]
+and [b+14], 0xff00
+shr [b+14], 8
+set [b+15], [useful_sector+7]
+and [b+15], 0x00ff
+set a, b
+add a, 15
+set b, 16
+set c, 0x20
+set c, pop
+set b, pop
+set a, pop
+set pc, pop
+
+:fd_unload_table;Wipes the currently loaded folder from memory.
+set push, a
+set push, b
+set push, c
+set c, 0
+set a, table
+set b, table_origin_sector
+sub b, table
+jsr memory_fill
+set [table_owner], 0xffff
+set [table_origin_sector], 0xffff
+set c, pop
+set b, pop
+set a, pop
+set pc, pop
+
+:fd_unload_file;Wipes the currently loaded file from memory.
+set push, a
+set push, b
+set push, c
+set c, 0
+set a, 0
+set b, file_end
+jsr memory_fill
+set [current_loaded_filetype], 0xfff0
+set [current_loaded_filelength], 0
+set c, pop
+set b, pop
+set a, pop
+set pc, pop

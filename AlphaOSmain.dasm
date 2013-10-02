@@ -1,0 +1,28 @@
+; *************************
+; Project: OS
+; File: AlphaOSmain.dasm
+; *************************
+.include Data/Defines.dasm
+.include Data/FileAlloc.dat.dasm
+.include Drivers/clock.drv.dasm
+.include Drivers/keyboard.drv.dasm
+.include Drivers/lem1802.drv.dasm
+.include Drivers/m35fd.drv.dasm
+.include Drivers/spc2000.drv.dasm
+.include Drivers/sped-3.drv.dasm
+.include Libraries/Bit.lib.dasm
+.include Libraries/Random.lib.dasm
+.include Libraries/Math.lib.dasm
+.include Libraries/Memory.lib.dasm
+.include Libraries/String.lib.dasm
+.include Managers/Error.mgr.dasm
+.include Managers/Interrupt.mgr.dasm
+.include Other/FileDriver.dasm
+.include Other/GUI.dasm
+:OSstart
+ias int_manager
+set a, 1
+set b, 1
+set c, terminal_palette
+jsr init_GUI
+:OSend

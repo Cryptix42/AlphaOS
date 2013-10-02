@@ -1,0 +1,119 @@
+; *************************
+; Project: OS
+; File: spc2000.drv.dasm
+; Finished! untested
+; *************************
+:spc2000_select;Param A. "selects" a spc2000 for the spc2000 functions to interact with.
+set push, a
+set push, b
+set push, c
+set push, i
+set push, j
+set push, x
+set push, y
+set push, z
+set push, ex
+set [spc2000_index], a
+hwn i
+set j, 0xffff
+set z, a
+:spc2000_search_loop
+add j, 1
+hwq j
+ife a, spc2000_id_a
+ife b, spc2000_id_b
+sub z, 1
+ife z, 0
+set [spc2000], j
+ifn z, 0
+set pc, spc2000_search_loop
+set ex, pop
+set z, pop
+set y, pop
+set x, pop
+set j, pop
+set i, pop
+set c, pop
+set b, pop
+set a, pop
+set pc, pop
+
+:spc2000_amount
+set push, b
+set push, c
+set push, i
+set push, j
+set push, x
+set push, y
+set push, z
+set push, ex
+hwn i
+set j, 0xffff
+set z, 0
+:spc2000_search_loop2
+add j, 1
+hwq j
+ife a, spc2000_id_a
+ife b, spc2000_id_b
+add z, 1
+ifn j, i
+set pc, spc2000_search_loop2
+set a, z
+set ex, pop
+set z, pop
+set y, pop
+set x, pop
+set j, pop
+set i, pop
+set c, pop
+set b, pop
+set pc, pop
+
+:spc2000_get_status;Return A and B. B till be set to 1 if the spc is ready to trigger, if it is not, then B will be left alone and A will contain the error message.
+set push, c
+set c, 0
+set b, 0
+set a, 0
+hwi [spc2000]
+set a, b
+set b, c
+set c, pop
+set pc, pop
+
+:spc2000_set_skip_amount;Param A. Set A to the beginning of a 64-bit number and it will set the spc2000 to skip that amount of units.
+set [scp2000_convert], [a+3];<====
+set [scp2000_convert+1], [a+2];   Endien
+set [scp2000_convert+2], [a+1];   Converter
+set [scp2000_convert+3], [a];<====
+set push, a
+set push, b
+set b, scp2000_convert
+set a, 1
+hwi [spc2000]
+set b, pop
+set a, pop
+set pc, pop
+
+:spc2000_trigger_device;Return A and B. Preforms a get status call and will trigger if B is set to the ok message.
+set push, c
+set c, 0
+set b, 0
+set a, 2
+hwi [spc2000]
+set a, b
+set b, c
+set c, pop
+set pc, pop
+
+:spc2000_skip_unit;Param A. Set A to the unit to skip. 0=milliseconds 1=minutes 2=days 3=years
+set push, b
+set b, a
+set a, 3
+hwi [spc2000]
+set a, b
+set b, pop
+set pc, pop
+
+:spc2000_index dat 0x0000
+:spc2000 dat 0x0000
+:scp2000_convert dat 0x0000, 0x0000, 0x0000, 0x0000

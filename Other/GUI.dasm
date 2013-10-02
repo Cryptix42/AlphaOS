@@ -1,0 +1,306 @@
+; *************************
+; Project: OS
+; File: GUI.dasm
+; *************************
+
+:init_GUI
+set [terminal_lem1802], a
+set [terminal_keyboard], b
+set push, a
+set push, b
+set push, c
+set push, i
+set push, j
+set i, a
+jsr keyboard_amount
+ifg i, a
+	set pc, init_interface_error
+jsr lem1802_amount
+ifg j, a
+	set pc, init_interface_error
+set a, i
+jsr lem1802_select
+set a, b
+jsr keyboard_select
+set a, terminal_palette
+jsr lem1802_dump_palette
+set a, terminal_palette
+jsr lem1802_map_palette
+set a, terminal_font
+jsr lem1802_dump_font
+set a, terminal_font
+jsr lem1802_map_font
+set a, terminal_VRAM
+jsr lem1802_map_VRAM
+set a, mainDisplay
+set b, 0xf0
+jsr string_color
+set a, consoleDisplay
+set b, 0x20
+jsr string_color
+set pc, main_menu_code
+set j, pop
+set i, pop
+set c, pop
+set b, pop
+set a, pop
+set pc, pop
+:init_interface_error
+jsr int_error_no_such_device
+set j, pop
+set i, pop
+set c, pop
+set b, pop
+set a, pop
+set pc, pop
+
+:main_menu_code
+set a, terminal_VRAM
+sub a, 1
+set c, mainDisplay
+set b, mainEnd
+sub b, mainDisplay
+jsr memory_copy
+:main_menu_loop
+set a, [terminal_keyboard]
+jsr keyboard_select
+jsr keyboard_read_buffer
+jsr keyboard_clear_buffer
+ife a, key_1
+	set pc, programs_menu_code
+ife a, key_2
+	set pc, options_menu_code
+ife a, key_3
+	set pc, filesystem_code
+jsr consoleUpdate
+set pc, main_menu_loop
+
+:programs_menu_code
+set a, terminal_VRAM
+sub a, 1
+set c, programsDisplay
+set b, programsEnd
+sub b, programsDisplay
+jsr memory_copy
+:programs_menu_loop
+set a, [terminal_keyboard]
+jsr keyboard_select
+jsr keyboard_read_buffer
+jsr keyboard_clear_buffer
+ife a, key_backspace
+	set pc, main_menu_code
+jsr consoleUpdate
+set pc, programs_menu_loop
+
+:options_menu_code
+set a, terminal_VRAM
+sub a, 1
+set c, optionsDisplay
+set b, optionsEnd
+sub b, optionsDisplay
+jsr memory_copy
+:options_menu_loop
+set a, [terminal_keyboard]
+jsr keyboard_select
+jsr keyboard_read_buffer
+jsr keyboard_clear_buffer
+ife a, key_1
+	set pc, info_menu_code
+ife a, key_2
+	set pc, credits_menu_code
+ife a, key_backspace
+	set pc, main_menu_code
+jsr consoleUpdate
+set pc, options_menu_loop
+
+:filesystem_code
+set a, FilesystemGUIend_label
+set b, 0xf0
+jsr string_color
+bor [file_cursor], 0xf000
+
+;:filesystem_name_loop
+set b, filesystem_GUI_start+32
+set a, 1
+jsr fd_filename
+
+set a, filesystem_GUI_start
+set b, 0xf0
+jsr string_color
+set a, terminal_VRAM
+sub a, 1
+set c, filesystem_GUI_start
+set b, 256
+jsr memory_copy
+:filesystem_menu_loop
+set a, [terminal_keyboard]
+jsr keyboard_select
+jsr keyboard_read_buffer
+jsr keyboard_clear_buffer
+ife a, key_backspace
+	set pc, main_menu_code
+ife a, key_arrow_up
+	set pc, filesystem_scroll_up
+ife a, key_arrow_down
+	set pc, filesystem_scroll_down
+jsr consoleUpdate
+set [terminal_VRAM+63], [file_cursor]
+set pc, filesystem_menu_loop
+:filesystem_scroll_up
+ife [fileGUIscroll], filesystem_GUI_start
+	set pc, filesystem_menu_loop
+sub [fileGUIvar], 1
+sub [fileGUIscroll], 32
+set a, terminal_VRAM
+sub a, 1
+set c, [fileGUIscroll]
+set b, 256
+jsr memory_copy
+set pc, filesystem_menu_loop
+:filesystem_scroll_down
+ifg [fileGUIscroll], filesystemGUIend
+	set pc, filesystem_menu_loop
+add [fileGUIvar], 1
+add [fileGUIscroll], 32
+set a, terminal_VRAM
+sub a, 1
+set c, [fileGUIscroll]
+set b, 256
+jsr memory_copy
+set pc, filesystem_menu_loop
+:fileGUIvar    dat 0
+:fileGUIscroll dat filesystem_GUI_start
+
+:info_menu_code
+set a, terminal_VRAM
+sub a, 1
+set c, infoDisplay
+set b, infoEnd
+sub b, infoDisplay
+jsr memory_copy
+:info_menu_loop
+set a, [terminal_keyboard]
+jsr keyboard_select
+jsr keyboard_read_buffer
+jsr keyboard_clear_buffer
+ife a, key_backspace
+	set pc, options_menu_code
+jsr consoleUpdate
+set pc, info_menu_loop
+
+:credits_menu_code
+set a, terminal_VRAM
+sub a, 1
+set c, creditsDisplay
+set b, creditsEnd
+sub b, creditsDisplay
+jsr memory_copy
+:credits_menu_loop
+set a, [terminal_keyboard]
+jsr keyboard_select
+jsr keyboard_read_buffer
+jsr keyboard_clear_buffer
+ife a, key_backspace
+	set pc, options_menu_code
+jsr consoleUpdate
+set pc, credits_menu_loop
+
+:consoleUpdate
+set push, a
+set push, b
+set push, c
+set a, console
+sub a, 1
+set c, consoleDisplay
+set b, consoleEnd
+sub b, consoleDisplay
+jsr memory_copy
+set c, pop
+set b, pop
+set a, pop
+set pc, pop
+
+dat 0 0 0 0
+:consoleDisplay 
+              dat "  Press number keys to select   "
+              dat "  a menu option, and backspace  "
+              dat "  to go to the previous menu.   "
+              dat "                                "
+:consoleEnd
+dat 0
+
+:mainDisplay dat 1
+              dat "=======AlphaOS Main Menu========"
+              dat "                                "
+:startOption1 dat " 1. Programs                    "
+:startOption2 dat " 2. Computer                    "
+:startOption3 dat " 3. FileSystem                  "
+:startOption4 dat "                                "
+:startOption5 dat "                                "
+              dat "                                "
+:mainEnd
+
+:programsDisplay dat 1
+              dat "========AlphaOS Programs========"
+              dat "        Unfinished              "
+:progOption1  dat "                                "
+:progOption2  dat "                                "
+:progOption3  dat "                                "
+:progOption4  dat "                                "
+:progOption5  dat "                                "
+              dat "                                "
+:programsEnd
+
+:optionsDisplay dat 1
+              dat "========AlphaOS Computer========"
+              dat "        Unfinished              "
+:Option1      dat " 1.Info                         "
+:Option2      dat " 2.Credits                      "
+:Option3      dat "                                "
+:Option4      dat "                                "
+:Option5      dat "                                "
+              dat "                                "
+:optionsEnd
+
+:infoDisplay dat 1
+              dat "=========AlphaOS Info==========="
+              dat " Computer: DCPU-16              "
+              dat " Specs: 128K RAM, 100kHz        "
+              dat " Free RAM: 64K file allocation  "
+              dat " FileSystem: JAR(Just A Room)   "
+              dat " OS: AlphaOS                    "
+              dat " OS version: indev 0.71         "
+              dat "                                "
+:infoEnd
+
+:creditsDisplay dat 1
+              dat "=========AlphaOS Credits========"
+              dat " Cryptix (Creator, coder)       "
+              dat " Fen-ok (FS collaboration)      "
+              dat " KillaVanilla (I borrowed code) "
+              dat " Herobrine (emulator)           "
+              dat " Notch (made the dcpu-16)       "
+              dat " ChaOS/Entropy (inspiration)    "
+              dat "                                "
+:creditsEnd
+dat 0
+:file_cursor dat "<"
+:terminal_palette
+.reserve 16
+:terminal_font
+.reserve 256
+:terminal_VRAM dat 0
+             dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+             dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+             dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+             dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+             dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+             dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+             dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+             dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+:console     dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+             dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+             dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+             dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+:terminal_lem1802  dat 0x0000
+:terminal_keyboard dat 0x0000

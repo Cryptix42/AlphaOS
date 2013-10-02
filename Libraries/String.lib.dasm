@@ -1,0 +1,75 @@
+; *************************
+; Project: OS
+; File: String.lib.dasm
+; Note: This library is used for null terminated, 16-bit strings. (strings with 1 char per word and room for color bytes)
+; Charactures in the strings are based of of the lem1802 format. aaaaaaaaBccccccc  a=color byte  B=blink bit  c=ASCII char bits
+; *************************
+
+:string_toggle_blink
+set push, a
+sub a, 1
+:str_blink_loop
+add a, 1
+ifn [a], 0
+xor [a], 0b0000000010000000
+ifn [a], 0
+set pc, str_blink_loop
+set a, pop
+set pc, pop
+
+:string_return_length
+set push, b
+set b, a
+set a, 0
+sub b, 1
+:str_length_loop
+add b, 1
+add a, 1
+ifn b, 0
+set pc, str_length_loop
+set b, pop
+set pc, pop
+
+:string_color
+set push, a
+set push, b
+and b, 0x00ff
+shl b, 8
+sub a, 1
+:str_color_loop
+add a, 1
+ifn [a], 0
+bor [a], b
+ifn [a], 0
+set pc, str_color_loop
+set b, pop
+set a, pop
+set pc, pop
+
+:string_char_replace
+set push, a
+sub a, 1
+:str_replace_loop
+add a, 1
+ifn [a], 0
+ife [a], b
+set [a], c
+ifn [a], 0
+set pc, str_replace_loop
+set a, pop
+set pc, pop
+
+:string_char_count
+set push, b
+set push, c
+sub a, 1
+:str_count_loop
+add a, 1
+ife [a], b
+add c, 1
+ifn [a], 0
+set pc, str_count_loop
+set a, c
+set c, pop
+set b, pop
+set pc, pop
