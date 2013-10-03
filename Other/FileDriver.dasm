@@ -54,6 +54,8 @@ set pc, pop
 :fd_filename
 ife [table_owner], 0xffff
 jsr fd_get_root_name
+ife [table_owner], 0xffff
+set pc, pop
 mul a, 2
 add a, table_filedata
 ife [a], 0xfff1
@@ -135,7 +137,6 @@ ife a, 0
 jsr int_error_no_such_device
 ife a, 0
 set pc, get_root_name_end
-set a, 0
 set a, i
 set i, pop
 jsr m35fd_select
@@ -157,14 +158,9 @@ set a, pop
 set pc, pop
 :root_error_name
 set push, b
-set push, c
-set [b], 0x4045
-set a, b
-add a, 1
-set b, 31
-set c, 0x20
-jsr memory_fill
-set c, pop
+set [b], 0x0045
+set [b+1], 0x0072
+set [b+2], 0x0072
 set b, pop
 set pc, pop
 :root_ready_name
@@ -176,19 +172,12 @@ set a, 0
 set b, useful_sector
 jsr m35fd_sector_read
 set b, pop
-set b, pop
 set [b], [useful_sector+1]
 and [b], 0b1111100000000000
 shr [b], 11
-bor [b], 0x20
-set a, b
-add a, 1
-set b, 31
-set c, 0x20
-jsr memory_fill
+set a, pop
 set c, pop
 set b, pop
-set pc, pop
 set pc, pop
 
 :fd_get_folder_name;Param A. Return B.
@@ -216,11 +205,6 @@ and [b+2], 0xff00
 shr [b+2], 8
 set [b+3], [useful_sector+1]
 and [b+3], 0x00ff
-set a, b
-add a, 3
-set b, 28
-set c, 0x20
-jsr memory_fill
 set c, pop
 set b, pop
 set a, pop
@@ -281,10 +265,6 @@ and [b+14], 0xff00
 shr [b+14], 8
 set [b+15], [useful_sector+7]
 and [b+15], 0x00ff
-set a, b
-add a, 15
-set b, 16
-set c, 0x20
 set c, pop
 set b, pop
 set a, pop

@@ -33,11 +33,27 @@ jsr lem1802_map_font
 set a, terminal_VRAM
 jsr lem1802_map_VRAM
 set a, mainDisplay
-set b, 0xf0
-jsr string_color
+set b, creditsEnd
+sub b, a
+set c, 0xf000
+jsr memory_bor
 set a, consoleDisplay
-set b, 0x20
-jsr string_color
+set b, consoleEnd
+sub b, a
+set c, 0x2000
+jsr memory_bor
+set a, filesystem_GUI_start
+set b, FilesystemGUIend_label+31
+sub b, a
+set c, 0xf000
+jsr memory_bor
+set a, filesystem_GUI_start+33
+set b, FilesystemGUIend_label
+sub b, a
+sub b, 1
+set c, 0xf020
+jsr memory_fill
+bor [file_cursor], 0xf000
 set pc, main_menu_code
 set j, pop
 set i, pop
@@ -114,19 +130,16 @@ jsr consoleUpdate
 set pc, options_menu_loop
 
 :filesystem_code
-set a, FilesystemGUIend_label
-set b, 0xf0
-jsr string_color
-bor [file_cursor], 0xf000
-
-;:filesystem_name_loop
-set b, filesystem_GUI_start+32
-set a, 1
-jsr fd_filename
+;:filesystem_name_loop 
+;set b, filesystem_GUI_start+32
+;set a, 1
+;jsr fd_filename ;<<<not working yet
 
 set a, filesystem_GUI_start
-set b, 0xf0
-jsr string_color
+set b, FilesystemGUIend_label+31
+sub b, a
+set c, 0xf000
+jsr memory_bor
 set a, terminal_VRAM
 sub a, 1
 set c, filesystem_GUI_start
@@ -158,7 +171,7 @@ set b, 256
 jsr memory_copy
 set pc, filesystem_menu_loop
 :filesystem_scroll_down
-ifg [fileGUIscroll], filesystemGUIend
+ifg [fileGUIscroll], filesystem_GUI_end
 	set pc, filesystem_menu_loop
 add [fileGUIvar], 1
 add [fileGUIscroll], 32
