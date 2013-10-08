@@ -23,9 +23,9 @@ hwq j
 ife a, keyboard_id_a
 ife b, keyboard_id_b
 	sub z, 1
-ife z, 0
+ife z, 0xffff
 	set [keyboard], j
-ifn z, 0
+ifn z, 0xffff
 	set pc, keyboard_search_loop
 set ex, pop
 set z, pop

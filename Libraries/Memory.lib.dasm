@@ -3,10 +3,8 @@
 ; File: Memory.lib.dasm
 ; Finished! tested
 ; *************************
-;Param A, B, and C. All of these functions work in a similar manner but with a different operation.
-;Set A to the start of RAM sector, B to the length, and C to a parameter value. 
-;These functions will preform their respective operations on the specified sectors with the value in C.
-:memory_scan;Param A and B. Return C. This is a special one. Set A to the start of area to be scanned and b to the value to scan for and it will return the length of RAM between A and the next address with the value of B.
+
+:memory_scan;Param A and B. Return C. Set A to the start of area to be scanned and b to the value to scan for and it will return the length of RAM between A and the next address with the value of B.
 set push, a
 set push, b
 set c, 0
@@ -19,6 +17,9 @@ set b, pop
 set a, pop
 set pc, pop
 
+;Param A, B, and C. All of these functions work in a similar manner but with a different operation.
+;Set A to the start of RAM sector, B to the length, and C to a parameter value. 
+;These functions will preform their respective operations on the specified sectors with the value in C.
 :memory_copy
 set push, a
 set push, b

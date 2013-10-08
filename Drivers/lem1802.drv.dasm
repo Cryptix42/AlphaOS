@@ -23,9 +23,9 @@ hwq j
 ife a, lem1802_id_a
 ife b, lem1802_id_b
 	sub z, 1
-ife z, 0
+ife z, 0xffff
 	set [lem1802], j
-ifn z, 0
+ifn z, 0xffff
 		set pc, lem1802_search_loop
 set ex, pop
 set z, pop

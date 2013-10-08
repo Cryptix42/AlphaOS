@@ -53,7 +53,7 @@ sub b, a
 sub b, 1
 set c, 0xf020
 jsr memory_fill
-bor [file_cursor], 0xf000
+bor [file_cursor], 0b1111000010000000
 set pc, main_menu_code
 set j, pop
 set i, pop
@@ -130,10 +130,10 @@ jsr consoleUpdate
 set pc, options_menu_loop
 
 :filesystem_code
-;:filesystem_name_loop 
-;set b, filesystem_GUI_start+32
-;set a, 1
-;jsr fd_filename ;<<<not working yet
+:filesystem_name_loop 
+set b, filesystem_GUI_start+33
+set a, 1
+jsr fd_filename ;<<<not working yet
 
 set a, filesystem_GUI_start
 set b, FilesystemGUIend_label+31
@@ -145,6 +145,7 @@ sub a, 1
 set c, filesystem_GUI_start
 set b, 256
 jsr memory_copy
+set [terminal_VRAM+63], [file_cursor]
 :filesystem_menu_loop
 set a, [terminal_keyboard]
 jsr keyboard_select
@@ -157,7 +158,6 @@ ife a, key_arrow_up
 ife a, key_arrow_down
 	set pc, filesystem_scroll_down
 jsr consoleUpdate
-set [terminal_VRAM+63], [file_cursor]
 set pc, filesystem_menu_loop
 :filesystem_scroll_up
 ife [fileGUIscroll], filesystem_GUI_start
@@ -169,6 +169,7 @@ sub a, 1
 set c, [fileGUIscroll]
 set b, 256
 jsr memory_copy
+set [terminal_VRAM+63], [file_cursor]
 set pc, filesystem_menu_loop
 :filesystem_scroll_down
 ifg [fileGUIscroll], filesystem_GUI_end
@@ -180,6 +181,7 @@ sub a, 1
 set c, [fileGUIscroll]
 set b, 256
 jsr memory_copy
+set [terminal_VRAM+63], [file_cursor]
 set pc, filesystem_menu_loop
 :fileGUIvar    dat 0
 :fileGUIscroll dat filesystem_GUI_start

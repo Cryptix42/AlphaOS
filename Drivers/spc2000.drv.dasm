@@ -23,9 +23,9 @@ hwq j
 ife a, spc2000_id_a
 ife b, spc2000_id_b
 sub z, 1
-ife z, 0
+ife z, 0xffff
 set [spc2000], j
-ifn z, 0
+ifn z, 0xffff
 set pc, spc2000_search_loop
 set ex, pop
 set z, pop

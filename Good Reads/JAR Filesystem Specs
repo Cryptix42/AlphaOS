@@ -65,8 +65,10 @@ some filetype. There are special (or fake) filetypes:
             1111111111110001 bbbbbbbbbbb00000
         Where bbbbbbbbbbb (11 bits) defines the folder's sector.
 
-        c. 0xfff2. It defines that the sequence of sectors is additional space
-        for a file.
+        c. 0xfff2. It defines that the sequence of sectors is an extension
+        for a file. The file can only have one of these and this file_info
+        must be written to the table following the file_info of the file
+        that it extends.
 
         d. 0xffff. It defines that the sequence of sectors is broken.
 
@@ -133,9 +135,7 @@ of the first sector. Now the file system is ready for use.
 
 2) How to write a file.
     FSIZE is the size of your file in sectors.
-    Calculate the number of file_info records (FIR) by: FIR=ceil(FSIZE/32).
-    Calculate the number of additional sectors in the last file_info record
-(ASN) by: ASN=(FSIZE-32*(FIR-1))-1.
+    If FSIZE > 32 then
     Read the second word and find the first free sector (FFS). Calculate the
 number of free sectors (FRS) by: FRS=1440-FFS.
     Choose a folder (header is root folder). Read every second word from the

@@ -34,7 +34,7 @@ set c, pop
 set b, pop
 rfi 0xC0DE
 
-:software_manager;I have no clue what this will do.
+:software_manager;I am planning an API function accessing system that will use this handler to allow apps to access functions in the API.
 set pc, pop
 
 :clock_manager

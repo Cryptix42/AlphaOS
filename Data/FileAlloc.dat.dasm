@@ -172,6 +172,6 @@ dat "=======AlphaOS Filesystem========"
 .reserve 224
 :filesystem_GUI_end
 .reserve 32
-:FilesystemGUIend_label dat "=======FilesystemGUI end========"
+:FilesystemGUIend_label dat "=========Filesystem end========="
 .reserve 224
 dat 0

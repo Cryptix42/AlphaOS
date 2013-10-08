@@ -19,10 +19,11 @@
 .include Managers/Interrupt.mgr.dasm
 .include Other/FileDriver.dasm
 .include Other/GUI.dasm
-:OSstart
+:OSstart;Yeah that's right, an entire OS in 6 opcodes, how's that for assembly pro.
 ias int_manager
-set a, 1
-set b, 1
+set a, 0
+set b, 0
 set c, terminal_palette
 jsr init_GUI
 :OSend
+set pc, OSend

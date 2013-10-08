@@ -15,13 +15,12 @@
 .define sped3_id_a    0xbf3c
 .define sped3_id_b    0x42ba
 
-.define error_fd_nomedia    0x0001
+.define error_fd_no_media   0x0001
 .define error_fd_busy       0x0002
 .define error_fd_corrupt    0x0003
 .define error_fd_WP         0x0004
 .define error_fd_invFS      0x0005
-.define error_fd_noroot     0x0006
-.define error_fd_nofolder   0x0007
+.define error_fd_no_table   0x0006
 
 .define error_in_nsd      0x0011
 

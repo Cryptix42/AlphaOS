@@ -4,9 +4,12 @@
 ; *************************
 ;Param A and B. 
 ;If A is 0 load root from media_ready or media_ready_WP floppy drive chosen by B.
-;If A is 1 then load object from loaded table(file, folder, extension).
+;If A is 1 then load object(file, folder) chosen by B from loaded table.
 :fd_load 
-
+ife a, 0
+jsr fd_load_root
+ife a, 1
+jsr fd_load_object
 set pc, pop
 
 ;Param A. 
@@ -75,9 +78,9 @@ dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-:table_owner dat 0
+:table_owner dat 0xffff
 :table_WP_flag dat 0
-:table_type dat 0 
+:table_type dat 0xfff0
 :table_origin_sector dat 0
 
 :current_loaded_filetype   dat 0xfff0 ;magic number
@@ -94,6 +97,96 @@ dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 
 ;///////SUBROUTINES////////
+:fd_load_root;Param B. Set B to the m35fd index that you want to load from.
+set push, a
+set push, b
+set [table_owner], b
+set a, b
+jsr m35fd_select
+jsr m35fd_check_status
+ife a, 0
+	jsr fd_error_no_media
+ife a, 0
+	set pc, root_load_skp
+ife a, 3
+	jsr fd_error_busy
+ife a, 3
+	set pc, root_load_skp
+ife a, 2
+	set [table_WP_flag], 1
+set a, 0
+set b, table
+jsr m35fd_sector_read
+ifn [table], fd_magic_number
+	jsr fd_error_invalid_fs
+ifn [table], fd_magic_number
+	jsr fd_unload_table
+:root_load_skp
+set b, pop
+set a, pop
+set pc, pop
+
+:fd_load_object
+set push, a
+set push, b
+set a, [table_owner]
+jsr m35fd_select
+jsr m35fd_check_status
+ife a, 2
+	set [table_WP_flag], 1
+mul b, 2
+ife b, 0
+	set pc, fd_load_obj_skp
+ife [table+b], 0
+	set pc, fd_load_obj_skp
+ife [table+b], 0xfff1
+	set pc, fd_load_folder
+ifl [table+b], 0xfff0
+	set pc, fd_load_file
+:fd_load_obj_skp
+set b, pop
+set a, pop
+set pc, pop
+:fd_load_folder
+set b, [table+b]
+set a, [b+1]
+and a, 0b1111111111100000
+shr a, 5
+set [table_origin_sector], a
+set b, table
+jsr m35fd_sector_read
+set pc, fd_load_obj_skp
+:fd_load_file
+set push, c
+set b, [table+b]
+set push, b
+set c, [b+1]
+and c, 0b0000000000011111
+set [current_loaded_filetype], [b]
+set [current_loaded_filelength], c
+set a, [b+1]
+and a, 0b1111111111100000
+shr a, 5
+set b, file_start
+jsr multisector_read
+set b, pop
+set c, pop
+ifn [b+2], 0xfff2
+	set pc, fd_load_obj_skp
+set push, c
+set push, b
+set c, [b+3]
+and c, 0b0000000000011111
+add [current_loaded_filelength], c
+set a, [b+3]
+and a, 0b1111111111100000
+shr a, 5
+set b, file_extension_start
+jsr multisector_read
+set b, pop
+set c, pop
+set pc, fd_load_obj_skp
+
 :fd_table_search_folder
 set push, i
 set push, j
@@ -101,11 +194,10 @@ set i, 0
 set j, table
 :table_search_folder_loop
 add j, 2
-add i, 1
 ife [j], 0xfff1
 add i, 1
 ifn i, a
-set pc, table_search_folder_loop
+	set pc, table_search_folder_loop
 set a, j
 set j, pop
 set i, pop
@@ -120,7 +212,7 @@ set j, table
 add j, 2
 add i, 1
 ifl [j], 0xfff0
-add i, 1
+	add i, 1
 ifn i, a
 set pc, table_search_file_loop
 set a, j
@@ -130,41 +222,32 @@ set pc, pop
 
 :fd_get_root_name
 set push, a
-set push, i
-set i, a
+set push, a
 jsr m35fd_amount
 ife a, 0
-jsr int_error_no_such_device
+	jsr int_error_no_such_device
 ife a, 0
-set pc, get_root_name_end
-set a, i
-set i, pop
+	set pc, get_root_name_end
+set a, pop
 jsr m35fd_select
-set push, b
 jsr m35fd_check_status
 ife a, 0
-jsr root_error_name
+	jsr root_error_name
 ife a, 1
-jsr root_ready_name
+	jsr root_ready_name
 ife a, 2
-jsr root_ready_name
+	jsr root_ready_name
 ife a, 3
-jsr root_error_name
-set b, pop
+	jsr root_error_name
 :get_root_name_end
-set a, 0
-jsr fd_unload
 set a, pop
 set pc, pop
 :root_error_name
-set push, b
 set [b], 0x0045
 set [b+1], 0x0072
 set [b+2], 0x0072
-set b, pop
 set pc, pop
 :root_ready_name
-set push, b
 set push, c
 set push, a
 set push, b
@@ -177,7 +260,6 @@ and [b], 0b1111100000000000
 shr [b], 11
 set a, pop
 set c, pop
-set b, pop
 set pc, pop
 
 :fd_get_folder_name;Param A. Return B.
@@ -300,3 +382,91 @@ set c, pop
 set b, pop
 set a, pop
 set pc, pop
+
+:multisector_read;Param A, B, and C. Reads a sequence of sectors starting at A to RAM starting at B with C set to the number of sectors. Returns A as 0xffff and B as something else if reading failed.
+set push, a
+set push, b
+set push, c
+:m35fd_read_loop
+sub c, 1
+:m35fd_read_retry
+set [m35fd_error_flag], 0
+set push, a
+set push, b
+jsr m35fd_sector_read
+ife a, 0xffff
+	set [m35fd_error_flag], 0xffff
+set b, pop
+set a, pop
+ife [m35fd_error_flag], 0xffff
+	set pc, m35fd_read_error
+add a, 1
+add b, 512
+ife c, 0
+	set pc, m35fd_read_loop
+:m35fd_read_end
+set c, pop
+set b, pop
+set a, pop
+set pc, pop
+:m35fd_read_error
+set push, a
+set push, b
+jsr m35fd_check_status
+set b, pop
+ife a, 3
+set a, pop
+ifn a, 0
+set pc, m35fd_read_retry
+ife a, 0
+jsr fd_error_no_media
+ife a, 0
+set a, pop
+set pc, m35fd_read_end
+
+:multisector_write;Param A and B. Writes a sequence of sectors starting at A from RAM starting at B with C set to the number of sectors. Returns A as 0xffff and B as something else if writing failed.
+set push, a
+set push, b
+set push, c
+:m35fd_write_loop
+sub c, 1
+:m35fd_write_retry
+set [m35fd_error_flag], 0
+set push, a
+set push, b
+jsr m35fd_sector_write
+ife a, 0xffff
+	set [m35fd_error_flag], 0xffff
+set b, pop
+set a, pop
+ife [m35fd_error_flag], 0xffff
+	set pc, m35fd_write_error
+add a, 1
+add b, 512
+ife c, 0
+	set pc, m35fd_write_loop
+:m35fd_write_end
+set c, pop
+set b, pop
+set a, pop
+set pc, pop
+:m35fd_write_error
+set push, a
+set push, b
+jsr m35fd_check_status
+set b, pop
+ife a, 3
+set a, pop
+ife a, 3
+set pc, m35fd_write_retry
+ife a, 2
+jsr fd_error_WP
+ife a, 2
+set a, pop
+ife a, 0
+jsr fd_error_no_media
+ife a, 0
+set a, pop
+set pc, m35fd_write_end
+
+:m35fd_error_flag dat 0
