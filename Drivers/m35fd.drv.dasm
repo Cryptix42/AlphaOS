@@ -90,7 +90,7 @@ set x, pop
 set a, pop
 set pc, pop
 
-:m35fd_sector_read;Param A and B. Reads sector A to RAM starting at B. Returns A as 0xffff and B as something else if reading failed.
+:m35fd_sector_read;Param A and B. Reads sector A to RAM starting at B. Returns [m35fd_error_flag] as 0xffff if reading failed.
 set push, a
 set push, b
 set push, x
@@ -100,14 +100,16 @@ set y, b
 set a, 2
 hwi [m35fd]
 ifn b, 1
-jsr set_RW_error
+	jsr set_RW_error
+ifn b, 1
+	set [m35fd_error_flag], 0xffff
 set y, pop
 set x, pop
 set b, pop
 set a, pop
 set pc, pop
 
-:m35fd_sector_write;Param A and B. Writes sector A from RAM starting at B. Returns A as 0xffff and B as something else if writing failed.
+:m35fd_sector_write;Param A and B. Writes sector A from RAM starting at B. Returns [m35fd_error_flag] as 0xffff if writing failed.
 set push, a
 set push, b
 set push, x
@@ -117,12 +119,80 @@ set y, b
 set a, 3
 hwi [m35fd]
 ifn b, 1
-jsr set_RW_error
+	jsr set_RW_error
+ifn b, 1
+	set [m35fd_error_flag], 0xffff
 set y, pop
 set x, pop
 set b, pop
 set a, pop
 set pc, pop
+
+:m35fd_multisector_read;Param A, B, and C. Reads a sequence of sectors starting at A to RAM starting at B with C set to the number of sectors. Returns A as 0xffff and B as something else if reading failed.
+set push, a
+set push, b
+set push, c
+:m35fd_read_loop
+sub c, 1
+:m35fd_read_retry
+set [m35fd_error_flag], 0
+set push, a
+set push, b
+jsr m35fd_sector_read
+set b, pop
+set a, pop
+ife [m35fd_error_flag], 0xffff
+	set pc, m35fd_read_error
+add a, 1
+add b, 512
+ife c, 0
+	set pc, m35fd_read_loop
+:m35fd_read_end
+set c, pop
+set b, pop
+set a, pop
+set pc, pop
+:m35fd_read_error
+ife [m35fd_state_buffer], 3
+	set pc, m35fd_read_retry
+ife [m35fd_state_buffer], 2
+	jsr fd_error_WP
+ife [m35fd_state_buffer], 0
+	jsr fd_error_no_media
+set pc, m35fd_read_end
+
+:m35fd_multisector_write;Param A and B. Writes a sequence of sectors starting at A from RAM starting at B with C set to the number of sectors. Returns A as 0xffff and B as something else if writing failed.
+set push, a
+set push, b
+set push, c
+:m35fd_write_loop
+sub c, 1
+:m35fd_write_retry
+set [m35fd_error_flag], 0
+set push, a
+set push, b
+jsr m35fd_sector_write
+set b, pop
+set a, pop
+ife [m35fd_error_flag], 0xffff
+	set pc, m35fd_write_error
+add a, 1
+add b, 512
+ife c, 0
+	set pc, m35fd_write_loop
+:m35fd_write_end
+set c, pop
+set b, pop
+set a, pop
+set pc, pop
+:m35fd_write_error
+ife [m35fd_state_buffer], 3
+	set pc, m35fd_write_retry
+ife [m35fd_state_buffer], 2
+	jsr fd_error_WP
+ife [m35fd_state_buffer], 0
+	jsr fd_error_no_media
+set pc, m35fd_write_end
 
 :set_RW_error
 jsr m35fd_check_status
@@ -133,3 +203,4 @@ set pc, pop
 
 :m35fd_index dat 0x0000
 :m35fd dat 0x0000
+:m35fd_error_flag dat 0x0000

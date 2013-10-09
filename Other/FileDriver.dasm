@@ -7,9 +7,9 @@
 ;If A is 1 then load object(file, folder) chosen by B from loaded table.
 :fd_load 
 ife a, 0
-jsr fd_load_root
+	jsr fd_load_root
 ife a, 1
-jsr fd_load_object
+	jsr fd_load_object
 set pc, pop
 
 ;Param A. 
@@ -17,9 +17,9 @@ set pc, pop
 ;If A is 1, then wipe file and file extension allocation and all file vars.
 :fd_unload 
 ife a, 0
-jsr fd_unload_table
+	jsr fd_unload_table
 ife a, 1
-jsr fd_unload_file
+	jsr fd_unload_file
 set pc, pop
 
 ;Param A. 
@@ -56,15 +56,15 @@ set pc, pop
 ;If there is no table loaded then it will return the root name of the disk from drive A to location B.
 :fd_filename
 ife [table_owner], 0xffff
-jsr fd_get_root_name
+	jsr fd_get_root_name
 ife [table_owner], 0xffff
-set pc, pop
+	set pc, pop
 mul a, 2
 add a, table_filedata
 ife [a], 0xfff1
-jsr fd_get_folder_name
+	jsr fd_get_folder_name
 ifl [a], 0xfff0
-jsr fd_get_file_name
+	jsr fd_get_file_name
 set pc, pop
 
 :table
@@ -168,7 +168,7 @@ set a, [b+1]
 and a, 0b1111111111100000
 shr a, 5
 set b, file_start
-jsr multisector_read
+jsr m35fd_multisector_read
 set b, pop
 set c, pop
 ifn [b+2], 0xfff2
@@ -182,7 +182,7 @@ set a, [b+3]
 and a, 0b1111111111100000
 shr a, 5
 set b, file_extension_start
-jsr multisector_read
+jsr m35fd_multisector_read
 set b, pop
 set c, pop
 set pc, fd_load_obj_skp
@@ -195,7 +195,7 @@ set j, table
 :table_search_folder_loop
 add j, 2
 ife [j], 0xfff1
-add i, 1
+	add i, 1
 ifn i, a
 	set pc, table_search_folder_loop
 set a, j
@@ -214,7 +214,7 @@ add i, 1
 ifl [j], 0xfff0
 	add i, 1
 ifn i, a
-set pc, table_search_file_loop
+	set pc, table_search_file_loop
 set a, j
 set j, pop
 set i, pop
@@ -382,91 +382,3 @@ set c, pop
 set b, pop
 set a, pop
 set pc, pop
-
-:multisector_read;Param A, B, and C. Reads a sequence of sectors starting at A to RAM starting at B with C set to the number of sectors. Returns A as 0xffff and B as something else if reading failed.
-set push, a
-set push, b
-set push, c
-:m35fd_read_loop
-sub c, 1
-:m35fd_read_retry
-set [m35fd_error_flag], 0
-set push, a
-set push, b
-jsr m35fd_sector_read
-ife a, 0xffff
-	set [m35fd_error_flag], 0xffff
-set b, pop
-set a, pop
-ife [m35fd_error_flag], 0xffff
-	set pc, m35fd_read_error
-add a, 1
-add b, 512
-ife c, 0
-	set pc, m35fd_read_loop
-:m35fd_read_end
-set c, pop
-set b, pop
-set a, pop
-set pc, pop
-:m35fd_read_error
-set push, a
-set push, b
-jsr m35fd_check_status
-set b, pop
-ife a, 3
-set a, pop
-ifn a, 0
-set pc, m35fd_read_retry
-ife a, 0
-jsr fd_error_no_media
-ife a, 0
-set a, pop
-set pc, m35fd_read_end
-
-:multisector_write;Param A and B. Writes a sequence of sectors starting at A from RAM starting at B with C set to the number of sectors. Returns A as 0xffff and B as something else if writing failed.
-set push, a
-set push, b
-set push, c
-:m35fd_write_loop
-sub c, 1
-:m35fd_write_retry
-set [m35fd_error_flag], 0
-set push, a
-set push, b
-jsr m35fd_sector_write
-ife a, 0xffff
-	set [m35fd_error_flag], 0xffff
-set b, pop
-set a, pop
-ife [m35fd_error_flag], 0xffff
-	set pc, m35fd_write_error
-add a, 1
-add b, 512
-ife c, 0
-	set pc, m35fd_write_loop
-:m35fd_write_end
-set c, pop
-set b, pop
-set a, pop
-set pc, pop
-:m35fd_write_error
-set push, a
-set push, b
-jsr m35fd_check_status
-set b, pop
-ife a, 3
-set a, pop
-ife a, 3
-set pc, m35fd_write_retry
-ife a, 2
-jsr fd_error_WP
-ife a, 2
-set a, pop
-ife a, 0
-jsr fd_error_no_media
-ife a, 0
-set a, pop
-set pc, m35fd_write_end
-
-:m35fd_error_flag dat 0

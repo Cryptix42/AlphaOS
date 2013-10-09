@@ -284,7 +284,7 @@ dat 0
               dat " Free RAM: 64K file allocation  "
               dat " FileSystem: JAR(Just A Room)   "
               dat " OS: AlphaOS                    "
-              dat " OS version: indev 0.71         "
+              dat " OS version: indev 0.72         "
               dat "                                "
 :infoEnd
 
